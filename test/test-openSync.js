@@ -1,23 +1,23 @@
-var common = require("./common")
-  , odbc = require("../")
+var common = require('./common')
+  , odbc = require('../')
   , db = new odbc.Database()
-  , assert = require("assert");
+  , assert = require('assert');
 
 assert.equal(db.connected, false);
 
-db.query("select * from " + common.tableName, function (err, rs, moreResultSets) {
+db.query('select * from ' + common.tableName, function (err, rs, moreResultSets) {
   assert.deepEqual(err, { message: 'Connection not open.' });
   assert.deepEqual(rs, []);
   assert.equal(moreResultSets, false);
   assert.equal(db.connected, false);
 });
 
-console.log("Attempting to connect to: %s", common.connectionString);
+console.log('Attempting to connect to: %s', common.connectionString);
 
 try {
   db.openSync(common.connectionString);
 }
-catch(e) {
+catch (e) {
   console.log(e.stack);
   assert.deepEqual(e, null);
 }
@@ -25,7 +25,7 @@ catch(e) {
 try {
   db.closeSync();
 }
-catch(e) {
+catch (e) {
   console.log(e.stack);
   assert.deepEqual(e, null);
 }

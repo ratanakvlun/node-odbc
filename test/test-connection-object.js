@@ -1,8 +1,7 @@
-var common = require("./common")
-  , odbc = require("../")
+var common = require('./common')
+  , odbc = require('../')
   , db = new odbc.Database()
-  , assert = require("assert")
-  ;
+  , assert = require('assert');
 
 db.open(common.connectionObject, function(err){
   assert.equal(err, null);

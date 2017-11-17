@@ -1,11 +1,8 @@
-var common = require("./common")
-	, odbc = require("../")
-	, openCallback = 0
-	, closeCallback = 0
-	, openCount = 100
-	, connections = []
-	, errorCount = 0;
-	;
+var common = require('./common')
+  , odbc = require('../')
+  , openCount = 100
+  , connections = []
+  , errorCount = 0;
 
 for (var x = 0; x < openCount; x++ ) {
   var db = new odbc.Database();

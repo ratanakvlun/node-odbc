@@ -1,8 +1,7 @@
-var common = require("./common")
-  , odbc = require("../")
+var common = require('./common')
+  , odbc = require('../')
   , db = new odbc.Database()
-  , assert = require("assert")
-  ;
+  , assert = require('assert');
 
 db.openSync(common.connectionString);
 var data;
@@ -17,4 +16,3 @@ catch (e) {
 db.closeSync();
 console.log(data);
 assert.deepEqual(data, [{ UNICODETEXT: 'ꜨꜢ' }]);
-
