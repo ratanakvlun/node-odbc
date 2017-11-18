@@ -1,8 +1,7 @@
-var common = require("./common")
-  , odbc = require("../")
+var common = require('./common')
+  , odbc = require('../')
   , db = new odbc.Database()
-  , assert = require("assert")
-  ;
+  , assert = require('assert');
 
 db.openSync(common.connectionString);
 common.dropTables(db, function (err, data) {
@@ -10,4 +9,3 @@ common.dropTables(db, function (err, data) {
   assert.equal(err, null);
   assert.deepEqual(data, []);
 });
-

@@ -1,8 +1,7 @@
-var common = require("./common")
-  , odbc = require("../")
+var common = require('./common')
+  , odbc = require('../')
   , db = new odbc.Database()
-  , assert = require("assert")
-  ;
+  , assert = require('assert');
 
 db.openSync(common.connectionString);
 
@@ -11,4 +10,3 @@ db.query("select 1 as \"COLINT\", 'some test' as \"COLTEXT\"", function (err, da
   assert.equal(err, null);
   assert.deepEqual(data, [{ COLINT: '1', COLTEXT: 'some test' }]);
 });
-

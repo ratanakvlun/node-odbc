@@ -1,6 +1,6 @@
-var common = require("./common")
-  , odbc = require("../")
-  , assert = require("assert");
+var common = require('./common')
+  , odbc = require('../')
+  , assert = require('assert');
 
 odbc.open(common.connectionString, function (err, conn) {
   if (err) {

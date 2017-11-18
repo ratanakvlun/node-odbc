@@ -1,0 +1,38 @@
+{
+  "extends": "eslint:recommended",
+  "env": {
+    "node": true,
+    "es6": true
+  },
+  "rules": {
+    "no-console": "warn",
+    "no-unused-vars": [
+      "error",
+      { "args": "none" }
+    ],
+    "no-trailing-spaces": "error",
+    "space-unary-ops": [
+      "error",
+      { "words": true }
+    ],
+    "keyword-spacing": "error",
+    "indent": [
+      "error",
+      2,
+      { "ignoredNodes": [ "VariableDeclarator" ] }
+    ],
+    "quotes": [
+      "error",
+      "single",
+      {
+        "avoidEscape": true,
+        "allowTemplateLiterals": true
+      }
+    ],
+    "eol-last": "error",
+    "eqeqeq": "error",
+    "semi-style": "error",
+    "no-extra-semi": "error",
+    "space-infix-ops": "error"
+  }
+}
