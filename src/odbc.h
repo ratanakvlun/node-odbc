@@ -57,6 +57,7 @@ using namespace node;
 typedef struct {
   unsigned char *name;
   unsigned int len;
+  unsigned char *typeName;
   SQLLEN type;
   SQLUSMALLINT index;
 } Column;

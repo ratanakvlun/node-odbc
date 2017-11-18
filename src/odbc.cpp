@@ -309,6 +309,27 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            0,
                            NULL,
                            &columns[i].type);
+
+    //get the estimated size of column type name
+    ret = SQLColAttribute( hStmt,
+                           columns[i].index,
+                           SQL_DESC_TYPE_NAME,
+                           NULL,
+                           NULL,
+                           (SQLSMALLINT *) &buflen,
+                           NULL);
+
+    SQLSMALLINT estimatedSize = buflen + 2;
+    columns[i].typeName = new unsigned char[estimatedSize];
+
+    // get the column type name
+    ret = SQLColAttribute( hStmt,
+                           columns[i].index,
+                           SQL_DESC_TYPE_NAME,
+                           columns[i].typeName,
+                           estimatedSize,
+                           (SQLSMALLINT *) &buflen,
+                           NULL);
   }
   
   return columns;
@@ -321,6 +342,7 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
 void ODBC::FreeColumns(Column* columns, short* colCount) {
   for(int i = 0; i < *colCount; i++) {
       delete [] columns[i].name;
+      delete [] columns[i].typeName;
   }
 
   delete [] columns;
