@@ -304,7 +304,7 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
     //get the column type and store it directly in column[i].type
     ret = SQLColAttribute( hStmt,
                            columns[i].index,
-                           SQL_DESC_TYPE,
+                           SQL_DESC_CONCISE_TYPE,
                            NULL,
                            0,
                            NULL,
@@ -420,6 +420,8 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
         }
       }
       break;
+    case SQL_TYPE_DATE :
+    case SQL_TYPE_TIMESTAMP :
     case SQL_DATETIME :
     case SQL_TIMESTAMP : {
       //I am not sure if this is locale-safe or cross database safe, but it 
