@@ -57,7 +57,7 @@ using namespace node;
 typedef struct {
   unsigned char *name;
   unsigned int len;
-  unsigned char *typeName;
+  uint8_t *typeName;
   SQLLEN type;
   SQLUSMALLINT index;
 } Column;
@@ -80,6 +80,7 @@ class ODBC : public Nan::ObjectWrap {
     static void Init(v8::Handle<Object> exports);
     static Column* GetColumns(SQLHSTMT hStmt, short* colCount);
     static void FreeColumns(Column* columns, short* colCount);
+    static Local<Array> GetColumnMetadata(Column* columns, short* colCount);
     static Handle<Value> GetColumnValue(SQLHSTMT hStmt, Column column, uint16_t* buffer, int bufferLength);
     static Local<Value> GetRecordTuple (SQLHSTMT hStmt, Column* columns, short* colCount, uint16_t* buffer, int bufferLength);
     static Local<Value> GetRecordArray (SQLHSTMT hStmt, Column* columns, short* colCount, uint16_t* buffer, int bufferLength);
