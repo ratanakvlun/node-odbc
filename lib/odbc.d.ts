@@ -97,6 +97,14 @@ declare namespace odbc {
         closeSync(): void;
         moreResultsSync(): any;
         getColumnNamesSync(): string[];
+        getColumnMetadataSync(): ODBCColumnMetadata[];
+    }
+
+    export interface ODBCColumnMetadata {
+        INDEX: number;
+        COLUMN_NAME: string;
+        DATA_TYPE: number;
+        TYPE_NAME: string;
     }
 
     export interface ODBCStatement {

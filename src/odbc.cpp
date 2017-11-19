@@ -304,7 +304,7 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
     //get the column type and store it directly in column[i].type
     ret = SQLColAttribute( hStmt,
                            columns[i].index,
-                           SQL_DESC_TYPE,
+                           SQL_DESC_CONCISE_TYPE,
                            NULL,
                            0,
                            NULL,
@@ -320,7 +320,7 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            NULL);
 
     SQLSMALLINT estimatedSize = buflen + 2;
-    columns[i].typeName = new unsigned char[estimatedSize];
+    columns[i].typeName = new uint8_t[estimatedSize];
 
     // get the column type name
     ret = SQLColAttribute( hStmt,
@@ -348,6 +348,47 @@ void ODBC::FreeColumns(Column* columns, short* colCount) {
   delete [] columns;
   
   *colCount = 0;
+}
+
+/*
+ * GetColumnMetadata
+ */
+
+Local<Array> ODBC::GetColumnMetadata(Column* columns, short* colCount) {
+  Nan::EscapableHandleScope scope;
+
+  Local<Array> columnMetadata = Nan::New<Array>();
+
+  for (int i = 0; i < *colCount; i++) {
+    Local<Object> metadataObj = Nan::New<Object>();
+
+    metadataObj->Set(Nan::New<String>("INDEX").ToLocalChecked(),
+                     Nan::New(i));
+
+#ifdef UNICODE
+    metadataObj->Set(Nan::New<String>("COLUMN_NAME").ToLocalChecked(),
+                     Nan::New<String>((const uint16_t *) columns[i].name).ToLocalChecked());
+#else
+    metadataObj->Set(Nan::New<String>("COLUMN_NAME").ToLocalChecked(),
+                     Nan::New<String>((const char *) columns[i].name).ToLocalChecked());
+#endif
+
+    metadataObj->Set(Nan::New<String>("DATA_TYPE").ToLocalChecked(),
+                     Nan::New<Number>(columns[i].type));
+
+#ifdef UNICODE
+    metadataObj->Set(Nan::New<String>("TYPE_NAME").ToLocalChecked(),
+                     Nan::New<String>((const uint16_t *) columns[i].typeName).ToLocalChecked());
+#else
+    metadataObj->Set(Nan::New<String>("TYPE_NAME").ToLocalChecked(),
+                     Nan::New<String>((const char *) columns[i].typeName).ToLocalChecked());
+#endif
+
+    columnMetadata->Set(Nan::New(i),
+      metadataObj);
+  }
+
+  return scope.Escape(columnMetadata);
 }
 
 /*
@@ -420,6 +461,8 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
         }
       }
       break;
+    case SQL_TYPE_DATE :
+    case SQL_TYPE_TIMESTAMP :
     case SQL_DATETIME :
     case SQL_TIMESTAMP : {
       //I am not sure if this is locale-safe or cross database safe, but it 
