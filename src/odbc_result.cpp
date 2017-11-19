@@ -31,6 +31,7 @@ using namespace node;
 
 Nan::Persistent<Function> ODBCResult::constructor;
 Nan::Persistent<String> ODBCResult::OPTION_FETCH_MODE;
+Nan::Persistent<String> ODBCResult::OPTION_INCLUDE_METADATA;
 
 void ODBCResult::Init(v8::Handle<Object> exports) {
   DEBUG_PRINTF("ODBCResult::Init\n");
@@ -56,8 +57,11 @@ void ODBCResult::Init(v8::Handle<Object> exports) {
   Nan::SetPrototypeMethod(constructor_template, "getColumnNamesSync", GetColumnNamesSync);
   Nan::SetPrototypeMethod(constructor_template, "getColumnMetadataSync", GetColumnMetadataSync);
 
-  // Properties
+  // Options
   OPTION_FETCH_MODE.Reset(Nan::New("fetchMode").ToLocalChecked());
+  OPTION_INCLUDE_METADATA.Reset(Nan::New("includeMetadata").ToLocalChecked());
+
+  // Properties
   Nan::SetAccessor(instance_template, Nan::New("fetchMode").ToLocalChecked(), FetchModeGetter, FetchModeSetter);
   
   // Attach the Database Constructor to the target object
@@ -436,6 +440,14 @@ NAN_METHOD(ODBCResult::FetchAll) {
     if (obj->Has(fetchModeKey) && obj->Get(fetchModeKey)->IsInt32()) {
       data->fetchMode = obj->Get(fetchModeKey)->ToInt32()->Value();
     }
+
+    Local<String> includeMetadataKey = Nan::New<String>(OPTION_INCLUDE_METADATA);
+    if (obj->Has(includeMetadataKey) && obj->Get(includeMetadataKey)->IsBoolean()) {
+      data->includeMetadata = obj->Get(includeMetadataKey)->ToBoolean()->Value();
+    }
+    else {
+      data->includeMetadata = false;
+    }
   }
   else {
     Nan::ThrowTypeError("ODBCResult::FetchAll(): 1 or 2 arguments are required. The last argument must be a callback function.");
@@ -542,6 +554,11 @@ void ODBCResult::UV_AfterFetchAll(uv_work_t* work_req, int status) {
       (uv_after_work_cb)UV_AfterFetchAll);
   }
   else {
+    Local<Array> columnMetadata;
+    if (data->includeMetadata) {
+      columnMetadata = ODBC::GetColumnMetadata(self->columns, &self->colCount);
+    }
+
     ODBC::FreeColumns(self->columns, &self->colCount);
     
     Local<Value> info[2];
@@ -552,8 +569,15 @@ void ODBCResult::UV_AfterFetchAll(uv_work_t* work_req, int status) {
     else {
       info[0] = Nan::Null();
     }
-    
-    info[1] = Nan::New(data->rows);
+
+    if (data->includeMetadata) {
+      Local<Object> resultObj = Nan::New<Object>();
+      resultObj->Set(Nan::New<String>("metadata").ToLocalChecked(), columnMetadata);
+      resultObj->Set(Nan::New<String>("rows").ToLocalChecked(), Nan::New(data->rows));
+      info[1] = resultObj;
+    } else {
+      info[1] = Nan::New(data->rows);
+    }
 
     Nan::TryCatch try_catch;
 
@@ -589,6 +613,7 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
   int count = 0;
   int errorCount = 0;
   int fetchMode = self->m_fetchMode;
+  bool includeMetadata = false;
 
   if (info.Length() == 1 && info[0]->IsObject()) {
     Local<Object> obj = info[0]->ToObject();
@@ -597,14 +622,24 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
     if (obj->Has(fetchModeKey) && obj->Get(fetchModeKey)->IsInt32()) {
       fetchMode = obj->Get(fetchModeKey)->ToInt32()->Value();
     }
+
+    Local<String> includeMetadataKey = Nan::New<String>(OPTION_INCLUDE_METADATA);
+    if (obj->Has(includeMetadataKey) && obj->Get(includeMetadataKey)->IsBoolean()) {
+      includeMetadata = obj->Get(includeMetadataKey)->ToBoolean()->Value();
+    }
   }
   
   if (self->colCount == 0) {
     self->columns = ODBC::GetColumns(self->m_hSTMT, &self->colCount);
   }
-  
+
+  Local<Array> columnMetadata;
+  if (includeMetadata) {
+    columnMetadata = ODBC::GetColumnMetadata(self->columns, &self->colCount);
+  }
+
   Local<Array> rows = Nan::New<Array>();
-  
+
   //Only loop through the recordset if there are columns
   if (self->colCount > 0) {
     //loop through all records
@@ -665,8 +700,16 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
   if (errorCount > 0) {
     Nan::ThrowError(objError);
   }
-  
-  info.GetReturnValue().Set(rows);
+
+  if (includeMetadata) {
+    Local<Object> resultObj = Nan::New<Object>();
+    resultObj->Set(Nan::New<String>("metadata").ToLocalChecked(), columnMetadata);
+    resultObj->Set(Nan::New<String>("rows").ToLocalChecked(), rows);
+    info.GetReturnValue().Set(resultObj);
+  }
+  else {
+    info.GetReturnValue().Set(rows);
+  }
 }
 
 /*

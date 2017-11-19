@@ -22,6 +22,7 @@
 class ODBCResult : public Nan::ObjectWrap {
   public:
    static Nan::Persistent<String> OPTION_FETCH_MODE;
+   static Nan::Persistent<String> OPTION_INCLUDE_METADATA;
    static Nan::Persistent<Function> constructor;
    static void Init(v8::Handle<Object> exports);
    
@@ -75,6 +76,7 @@ protected:
       SQLRETURN result;
       
       int fetchMode;
+      bool includeMetadata;
       int count;
       int errorCount;
       Nan::Persistent<Array> rows;
