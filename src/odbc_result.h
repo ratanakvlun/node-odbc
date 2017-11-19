@@ -68,6 +68,8 @@ public:
     //property getter/setters
     static NAN_GETTER(FetchModeGetter);
     static NAN_SETTER(FetchModeSetter);
+    static NAN_GETTER(IncludeMetadataGetter);
+    static NAN_SETTER(IncludeMetadataSetter);
 
 protected:
     struct fetch_work_data {
@@ -91,6 +93,7 @@ protected:
     HSTMT m_hSTMT;
     bool m_canFreeHandle;
     int m_fetchMode;
+    bool m_includeMetadata;
     
     uint16_t *buffer;
     int bufferLength;

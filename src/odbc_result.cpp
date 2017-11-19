@@ -63,6 +63,7 @@ void ODBCResult::Init(v8::Handle<Object> exports) {
 
   // Properties
   Nan::SetAccessor(instance_template, Nan::New("fetchMode").ToLocalChecked(), FetchModeGetter, FetchModeSetter);
+  Nan::SetAccessor(instance_template, Nan::New("includeMetadata").ToLocalChecked(), IncludeMetadataGetter, IncludeMetadataSetter);
   
   // Attach the Database Constructor to the target object
   constructor.Reset(constructor_template->GetFunction());
@@ -136,6 +137,8 @@ NAN_METHOD(ODBCResult::New) {
 
   //default fetchMode to FETCH_OBJECT
   objODBCResult->m_fetchMode = FETCH_OBJECT;
+
+  objODBCResult->m_includeMetadata = false;
   
   objODBCResult->Wrap(info.Holder());
   
@@ -157,6 +160,20 @@ NAN_SETTER(ODBCResult::FetchModeSetter) {
   
   if (value->IsNumber()) {
     obj->m_fetchMode = value->Int32Value();
+  }
+}
+
+NAN_GETTER(ODBCResult::IncludeMetadataGetter) {
+  ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
+
+  info.GetReturnValue().Set(Nan::New(obj->m_includeMetadata));
+}
+
+NAN_SETTER(ODBCResult::IncludeMetadataSetter) {
+  ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
+
+  if (value->IsBoolean()) {
+    obj->m_includeMetadata = value->BooleanValue();
   }
 }
 
@@ -427,6 +444,7 @@ NAN_METHOD(ODBCResult::FetchAll) {
   Local<Function> cb;
   
   data->fetchMode = objODBCResult->m_fetchMode;
+  data->includeMetadata = objODBCResult->m_includeMetadata;
   
   if (info.Length() == 1 && info[0]->IsFunction()) {
     cb = Local<Function>::Cast(info[0]);
@@ -613,7 +631,7 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
   int count = 0;
   int errorCount = 0;
   int fetchMode = self->m_fetchMode;
-  bool includeMetadata = false;
+  bool includeMetadata = self->m_includeMetadata;
 
   if (info.Length() == 1 && info[0]->IsObject()) {
     Local<Object> obj = info[0]->ToObject();
