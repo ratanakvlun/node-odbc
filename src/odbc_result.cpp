@@ -135,9 +135,8 @@ NAN_METHOD(ODBCResult::New) {
   //set the initial colCount to 0
   objODBCResult->colCount = 0;
 
-  //default fetchMode to FETCH_OBJECT
+  //set option defaults
   objODBCResult->m_fetchMode = FETCH_OBJECT;
-
   objODBCResult->m_includeMetadata = false;
   
   objODBCResult->Wrap(info.Holder());
