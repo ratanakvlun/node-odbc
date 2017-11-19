@@ -55,8 +55,7 @@ using namespace node;
 
 
 typedef struct {
-  unsigned char *name;
-  unsigned int len;
+  uint8_t *name;
   uint8_t *typeName;
   SQLLEN type;
   SQLUSMALLINT index;

@@ -279,12 +279,24 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
   for (int i = 0; i < *colCount; i++) {
     //save the index number of this column
     columns[i].index = i + 1;
-    //TODO:that's a lot of memory for each field name....
-    columns[i].name = new unsigned char[MAX_FIELD_SIZE];
-    
-    //set the first byte of name to \0 instead of memsetting the entire buffer
+
+    //get the estimated size of column name
+    ret = SQLColAttribute( hStmt,
+                           columns[i].index,
+#ifdef STRICT_COLUMN_NAMES
+                           SQL_DESC_NAME,
+#else
+                           SQL_DESC_LABEL,
+#endif
+                           NULL,
+                           NULL,
+                           &buflen,
+                           NULL);
+
+    SQLSMALLINT estimatedSize = buflen + 2;
+    columns[i].name = new uint8_t[estimatedSize];
     columns[i].name[0] = '\0';
-    
+
     //get the column name
     ret = SQLColAttribute( hStmt,
                            columns[i].index,
@@ -294,13 +306,10 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            SQL_DESC_LABEL,
 #endif
                            columns[i].name,
-                           (SQLSMALLINT) MAX_FIELD_SIZE,
-                           (SQLSMALLINT *) &buflen,
+                           estimatedSize,
+                           &buflen,
                            NULL);
-    
-    //store the len attribute
-    columns[i].len = buflen;
-    
+
     //get the column type and store it directly in column[i].type
     ret = SQLColAttribute( hStmt,
                            columns[i].index,
@@ -316,11 +325,12 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            SQL_DESC_TYPE_NAME,
                            NULL,
                            NULL,
-                           (SQLSMALLINT *) &buflen,
+                           &buflen,
                            NULL);
 
-    SQLSMALLINT estimatedSize = buflen + 2;
+    estimatedSize = buflen + 2;
     columns[i].typeName = new uint8_t[estimatedSize];
+    columns[i].typeName[0] = '\0';
 
     // get the column type name
     ret = SQLColAttribute( hStmt,
@@ -328,7 +338,7 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            SQL_DESC_TYPE_NAME,
                            columns[i].typeName,
                            estimatedSize,
-                           (SQLSMALLINT *) &buflen,
+                           &buflen,
                            NULL);
   }
   
