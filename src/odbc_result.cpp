@@ -135,7 +135,7 @@ NAN_METHOD(ODBCResult::New) {
   delete canFreeHandle;
 
   //specify the buffer length
-  objODBCResult->bufferLength = MAKE_EVEN(FIXED_BUFFER_SIZE);
+  objODBCResult->bufferLength = ALIGN_SIZE(FIXED_BUFFER_SIZE);
 
   //initialze a buffer for this object
   objODBCResult->buffer = (uint8_t *) malloc(objODBCResult->bufferLength);

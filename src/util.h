@@ -17,6 +17,6 @@
 #ifndef _SRC_UTIL_H
 #define _SRC_UTIL_H
 
-#define MAKE_EVEN(v) (v - ((int64_t)v + 2) % 2)
+#define ALIGN_SIZE(v) (v - ((int64_t)v + sizeof(SQLTCHAR)) % sizeof(SQLTCHAR))
 
 #endif

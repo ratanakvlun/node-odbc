@@ -129,7 +129,7 @@ NAN_METHOD(ODBCStatement::New) {
   ODBCStatement* stmt = new ODBCStatement(hENV, hDBC, hSTMT);
   
   //specify the buffer length
-  stmt->bufferLength = MAKE_EVEN(FIXED_BUFFER_SIZE);
+  stmt->bufferLength = ALIGN_SIZE(FIXED_BUFFER_SIZE);
   
   //initialze a buffer for this object
   stmt->buffer = (uint8_t *) malloc(stmt->bufferLength);

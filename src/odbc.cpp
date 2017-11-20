@@ -27,6 +27,8 @@
 #include "odbc_result.h"
 #include "odbc_statement.h"
 
+#include "util.h"
+
 #ifdef dynodbc
 #include "dynodbc.h"
 #endif
@@ -293,10 +295,9 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            &buflen,
                            NULL);
 
-    SQLSMALLINT estimatedSize = buflen + 2;
+    SQLSMALLINT estimatedSize = buflen + sizeof(SQLWCHAR);
     columns[i].name = new uint8_t[estimatedSize];
-    columns[i].name[0] = '\0';
-    columns[i].name[1] = '\0';
+    memset(columns[i].name, NULL, sizeof(SQLWCHAR));
 
     //get the column name
     ret = SQLColAttribute( hStmt,
@@ -329,10 +330,9 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            &buflen,
                            NULL);
 
-    estimatedSize = buflen + 2;
+    estimatedSize = buflen + sizeof(SQLWCHAR);
     columns[i].typeName = new uint8_t[estimatedSize];
-    columns[i].typeName[0] = '\0';
-    columns[i].typeName[1] = '\0';
+    memset(columns[i].typeName, NULL, sizeof(SQLWCHAR));
 
     // get the column type name
     ret = SQLColAttribute( hStmt,
@@ -414,8 +414,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
   SQLLEN len = 0;
 
   //reset the buffer
-  buffer[0] = '\0';
-  buffer[1] = '\0';
+  memset(buffer, NULL, sizeof(SQLTCHAR));
 
   //TODO: SQLGetData can supposedly return multiple chunks, need to do this to 
   //retrieve large fields
@@ -542,8 +541,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
       int count = 0;
       
       do {
-        buffer[0] = '\0';
-        buffer[1] = '\0';
+        memset(buffer, NULL, sizeof(SQLTCHAR));
 
         ret = SQLGetData(
           hStmt,
