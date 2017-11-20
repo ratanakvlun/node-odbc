@@ -296,6 +296,7 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
     SQLSMALLINT estimatedSize = buflen + 2;
     columns[i].name = new uint8_t[estimatedSize];
     columns[i].name[0] = '\0';
+    columns[i].name[1] = '\0';
 
     //get the column name
     ret = SQLColAttribute( hStmt,
@@ -331,6 +332,7 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
     estimatedSize = buflen + 2;
     columns[i].typeName = new uint8_t[estimatedSize];
     columns[i].typeName[0] = '\0';
+    columns[i].typeName[1] = '\0';
 
     // get the column type name
     ret = SQLColAttribute( hStmt,
@@ -405,13 +407,14 @@ Local<Array> ODBC::GetColumnMetadata(Column* columns, short* colCount) {
  * GetColumnValue
  */
 
-Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column, 
-                                        uint16_t* buffer, int bufferLength) {
+Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
+                                   uint8_t* buffer, int bufferLength) {
   Nan::EscapableHandleScope scope;
   SQLLEN len = 0;
 
   //reset the buffer
   buffer[0] = '\0';
+  buffer[1] = '\0';
 
   //TODO: SQLGetData can supposedly return multiple chunks, need to do this to 
   //retrieve large fields
@@ -458,16 +461,14 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
           sizeof(value), 
           &len);
         
-         DEBUG_PRINTF("ODBC::GetColumnValue - Number: index=%i name=%s type=%lli len=%lli ret=%i val=%f\n", 
-                    column.index, column.name, column.type, len, ret, value);
+        DEBUG_PRINTF("ODBC::GetColumnValue - Number: index=%i name=%s type=%lli len=%lli ret=%i val=%f\n",
+                     column.index, column.name, column.type, len, ret, value);
         
         if (len == SQL_NULL_DATA) {
           return scope.Escape(Nan::Null());
-          //return Null();
         }
         else {
           return scope.Escape(Nan::New<Number>(value));
-          //return Number::New(value);
         }
       }
       break;
@@ -590,6 +591,9 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
       int count = 0;
       
       do {
+        buffer[0] = '\0';
+        buffer[1] = '\0';
+
         ret = SQLGetData(
           hStmt,
           column.index,
@@ -677,16 +681,16 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
  * GetRecordTuple
  */
 
-Local<Value> ODBC::GetRecordTuple ( SQLHSTMT hStmt, Column* columns, 
-                                         short* colCount, uint16_t* buffer,
-                                         int bufferLength) {
+Local<Value> ODBC::GetRecordTuple (SQLHSTMT hStmt,
+                                   Column* columns, short* colCount,
+                                   uint8_t* buffer, int bufferLength) {
   Nan::EscapableHandleScope scope;
   
   Local<Object> tuple = Nan::New<Object>();
         
   for(int i = 0; i < *colCount; i++) {
 #ifdef UNICODE
-    tuple->Set( Nan::New((uint16_t *) columns[i].name).ToLocalChecked(),
+    tuple->Set( Nan::New((const uint16_t *) columns[i].name).ToLocalChecked(),
                 GetColumnValue( hStmt, columns[i], buffer, bufferLength));
 #else
     tuple->Set( Nan::New((const char *) columns[i].name).ToLocalChecked(),
@@ -701,9 +705,9 @@ Local<Value> ODBC::GetRecordTuple ( SQLHSTMT hStmt, Column* columns,
  * GetRecordArray
  */
 
-Local<Value> ODBC::GetRecordArray ( SQLHSTMT hStmt, Column* columns, 
-                                         short* colCount, uint16_t* buffer,
-                                         int bufferLength) {
+Local<Value> ODBC::GetRecordArray (SQLHSTMT hStmt,
+                                   Column* columns, short* colCount,
+                                   uint8_t* buffer, int bufferLength) {
   Nan::EscapableHandleScope scope;
   
   Local<Array> array = Nan::New<Array>();
@@ -963,10 +967,10 @@ Local<Object> ODBC::GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, char*
  */
 
 Local<Array> ODBC::GetAllRecordsSync (HENV hENV, 
-                                     HDBC hDBC, 
-                                     HSTMT hSTMT,
-                                     uint16_t* buffer,
-                                     int bufferLength) {
+                                      HDBC hDBC,
+                                      HSTMT hSTMT,
+                                      uint8_t* buffer,
+                                      int bufferLength) {
   DEBUG_PRINTF("ODBC::GetAllRecordsSync\n");
   
   Nan::EscapableHandleScope scope;

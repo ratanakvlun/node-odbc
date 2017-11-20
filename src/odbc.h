@@ -37,7 +37,7 @@ using namespace v8;
 using namespace node;
 
 #define MAX_FIELD_SIZE 1024
-#define MAX_VALUE_SIZE 1048576
+#define FIXED_BUFFER_SIZE 1048576
 
 #define MAX_VALUE_SIZE_DEFAULT -1
 #define MAX_VALUE_CHUNK_SIZE_DEFAULT 1048576
@@ -83,14 +83,14 @@ class ODBC : public Nan::ObjectWrap {
     static Column* GetColumns(SQLHSTMT hStmt, short* colCount);
     static void FreeColumns(Column* columns, short* colCount);
     static Local<Array> GetColumnMetadata(Column* columns, short* colCount);
-    static Handle<Value> GetColumnValue(SQLHSTMT hStmt, Column column, uint16_t* buffer, int bufferLength);
-    static Local<Value> GetRecordTuple (SQLHSTMT hStmt, Column* columns, short* colCount, uint16_t* buffer, int bufferLength);
-    static Local<Value> GetRecordArray (SQLHSTMT hStmt, Column* columns, short* colCount, uint16_t* buffer, int bufferLength);
+    static Handle<Value> GetColumnValue(SQLHSTMT hStmt, Column column, uint8_t* buffer, int bufferLength);
+    static Local<Value> GetRecordTuple (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength);
+    static Local<Value> GetRecordArray (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength);
     static Handle<Value> CallbackSQLError(SQLSMALLINT handleType, SQLHANDLE handle, Nan::Callback* cb);
     static Local<Value> CallbackSQLError (SQLSMALLINT handleType, SQLHANDLE handle, char* message, Nan::Callback* cb);
     static Local<Object> GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle);
     static Local<Object> GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, char* message);
-    static Local<Array>  GetAllRecordsSync (HENV hENV, HDBC hDBC, HSTMT hSTMT, uint16_t* buffer, int bufferLength);
+    static Local<Array>  GetAllRecordsSync (HENV hENV, HDBC hDBC, HSTMT hSTMT, uint8_t* buffer, int bufferLength);
 #ifdef dynodbc
     static NAN_METHOD(LoadODBCLibrary);
 #endif

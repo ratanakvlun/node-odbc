@@ -108,7 +108,7 @@ protected:
     int32_t m_maxValueSize;
     int32_t m_valueChunkSize;
     
-    uint16_t *buffer;
+    uint8_t *buffer;
     int bufferLength;
     Column *columns;
     short colCount;

@@ -26,6 +26,8 @@
 #include "odbc_result.h"
 #include "odbc_statement.h"
 
+#include "util.h"
+
 using namespace v8;
 using namespace node;
 
@@ -133,10 +135,10 @@ NAN_METHOD(ODBCResult::New) {
   delete canFreeHandle;
 
   //specify the buffer length
-  objODBCResult->bufferLength = MAX_VALUE_SIZE - 1;
-  
+  objODBCResult->bufferLength = MAKE_EVEN(FIXED_BUFFER_SIZE);
+
   //initialze a buffer for this object
-  objODBCResult->buffer = (uint16_t *) malloc(objODBCResult->bufferLength + 1);
+  objODBCResult->buffer = (uint8_t *) malloc(objODBCResult->bufferLength);
   //TODO: make sure the malloc succeeded
 
   //set the initial colCount to 0
