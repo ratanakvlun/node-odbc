@@ -69,7 +69,7 @@ void ODBC::Init(v8::Handle<Object> exports) {
   constructor_template->Set(Nan::New<String>("SQL_DESTROY").ToLocalChecked(), Nan::New<Number>(SQL_DESTROY), constant_attributes);
   constructor_template->Set(Nan::New<String>("FETCH_ARRAY").ToLocalChecked(), Nan::New<Number>(FETCH_ARRAY), constant_attributes);
   NODE_ODBC_DEFINE_CONSTANT(constructor_template, FETCH_OBJECT);
-  
+
   // Prototype Methods
   Nan::SetPrototypeMethod(constructor_template, "createConnection", CreateConnection);
   Nan::SetPrototypeMethod(constructor_template, "createConnectionSync", CreateConnectionSync);
@@ -431,8 +431,8 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
           sizeof(value), 
           &len);
         
-        DEBUG_PRINTF("ODBC::GetColumnValue - Integer: index=%i name=%s type=%lli len=%lli ret=%i val=%li\n", 
-                    column.index, column.name, column.type, len, ret, value);
+        DEBUG_PRINTF("ODBC::GetColumnValue - Integer: index=%i name=%s type=%lli len=%lli ret=%i val=%li\n",
+                     column.index, column.name, column.type, len, ret, value);
         
         if (len == SQL_NULL_DATA) {
           return scope.Escape(Nan::Null());
@@ -572,18 +572,18 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
         hStmt, 
         column.index, 
         SQL_C_CHAR,
-        (char *) buffer, 
+        buffer,
         bufferLength, 
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Bit: index=%i name=%s type=%lli len=%lli\n", 
-                    column.index, column.name, column.type, len);
+      DEBUG_PRINTF("ODBC::GetColumnValue - Bit: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
+                   column.index, column.name, column.type, len, ret, buffer);
 
       if (len == SQL_NULL_DATA) {
         return scope.Escape(Nan::Null());
       }
       else {
-        return scope.Escape(Nan::New((*buffer == '0') ? false : true));
+        return scope.Escape(Nan::New<Boolean>((*buffer == '0') ? false : true));
       }
     default :
       Local<String> str;
@@ -594,19 +594,18 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
           hStmt,
           column.index,
           SQL_C_TCHAR,
-          (char *) buffer,
+          buffer,
           bufferLength,
           &len);
 
-        DEBUG_PRINTF("ODBC::GetColumnValue - String: index=%i name=%s type=%lli len=%lli value=%s ret=%i bufferLength=%i\n", 
-                      column.index, column.name, column.type, len,(char *) buffer, ret, bufferLength);
+        DEBUG_PRINTF("ODBC::GetColumnValue - String: index=%i name=%s type=%lli len=%lli ret=%i\n",
+                     column.index, column.name, column.type, len, ret);
 
-        if (len == SQL_NULL_DATA && str.IsEmpty()) {
+        if (len == SQL_NULL_DATA) {
           return scope.Escape(Nan::Null());
-          //return Null();
         }
         
-        if (SQL_NO_DATA == ret) {
+        if (ret == SQL_NO_DATA) {
           //we have captured all of the data
           //double check that we have some data else return null
           if (str.IsEmpty()){
@@ -621,17 +620,17 @@ Handle<Value> ODBC::GetColumnValue( SQLHSTMT hStmt, Column column,
           if (count == 0) {
             //no concatenation required, this is our first pass
 #ifdef UNICODE
-            str = Nan::New((uint16_t*) buffer).ToLocalChecked();
+            str = Nan::New((const uint16_t *) buffer).ToLocalChecked();
 #else
-            str = Nan::New((char *) buffer).ToLocalChecked();
+            str = Nan::New((const char *) buffer).ToLocalChecked();
 #endif
           }
           else {
             //we need to concatenate
 #ifdef UNICODE
-            str = String::Concat(str, Nan::New((uint16_t*) buffer).ToLocalChecked());
+            str = String::Concat(str, Nan::New((const uint16_t *) buffer).ToLocalChecked());
 #else
-            str = String::Concat(str, Nan::New((char *) buffer).ToLocalChecked());
+            str = String::Concat(str, Nan::New((const char *) buffer).ToLocalChecked());
 #endif
           }
           
