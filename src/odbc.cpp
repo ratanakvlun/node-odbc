@@ -446,9 +446,6 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         }
       }
       break;
-    case SQL_NUMERIC :
-    case SQL_DECIMAL :
-    case SQL_BIGINT :
     case SQL_FLOAT :
     case SQL_REAL :
     case SQL_DOUBLE : {
@@ -473,100 +470,53 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         }
       }
       break;
-    case SQL_TYPE_DATE :
-    case SQL_TYPE_TIMESTAMP :
-    case SQL_DATETIME :
-    case SQL_TIMESTAMP : {
-      //I am not sure if this is locale-safe or cross database safe, but it 
-      //works for me on MSSQL
-#ifdef _WIN32
-      struct tm timeInfo = {};
+    case SQL_NUMERIC :
+    case SQL_DECIMAL :
+    case SQL_BIGINT : {
+        ret = SQLGetData(
+          hStmt,
+          column.index,
+          SQL_C_CHAR,
+          buffer,
+          bufferLength,
+          &len);
 
-      ret = SQLGetData(
-        hStmt, 
-        column.index, 
-        SQL_C_CHAR,
-        (char *) buffer, 
-        bufferLength, 
-        &len);
+        DEBUG_PRINTF("ODBC::GetColumnValue - Fixed Precision Number: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
+                     column.index, column.name, column.type, len, ret, buffer);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - W32 Timestamp: index=%i name=%s type=%lli len=%lli\n", 
-                    column.index, column.name, column.type, len);
-
-      if (len == SQL_NULL_DATA) {
-        return scope.Escape(Nan::Null());
-        //return Null();
-      }
-      else {
-        if (strptime((char *) buffer, "%Y-%m-%d %H:%M:%S", &timeInfo)) {
-          //a negative value means that mktime() should use timezone information
-          //and system databases to attempt to determine whether DST is in effect
-          //at the specified time.
-          timeInfo.tm_isdst = -1;
-          
-          //return scope.Escape(Date::New(Isolate::GetCurrent(), (double(mktime(&timeInfo)) * 1000));
-          return scope.Escape(Nan::New<Date>(double(mktime(&timeInfo)) * 1000).ToLocalChecked());
+        if (len == SQL_NULL_DATA) {
+          return scope.Escape(Nan::Null());
         }
         else {
-          return scope.Escape(Nan::New((char *)buffer).ToLocalChecked());
+          return scope.Escape(Nan::New<String>((const char *) buffer).ToLocalChecked());
         }
       }
-#else
-      struct tm timeInfo = { 
-        tm_sec : 0
-        , tm_min : 0
-        , tm_hour : 0
-        , tm_mday : 0
-        , tm_mon : 0
-        , tm_year : 0
-        , tm_wday : 0
-        , tm_yday : 0
-        , tm_isdst : 0
-        , tm_gmtoff : 0
-        , tm_zone : 0
-      };
+      break;
+    case SQL_DATE :
+    case SQL_TIME :
+    case SQL_TIMESTAMP :
+    case SQL_TYPE_DATE :
+    case SQL_TYPE_TIME :
+    case SQL_TYPE_TIMESTAMP : {
+        ret = SQLGetData(
+          hStmt,
+          column.index,
+          SQL_C_CHAR,
+          buffer,
+          bufferLength,
+          &len);
 
-      SQL_TIMESTAMP_STRUCT odbcTime;
-      
-      ret = SQLGetData(
-        hStmt, 
-        column.index, 
-        SQL_C_TYPE_TIMESTAMP,
-        &odbcTime, 
-        bufferLength, 
-        &len);
+        DEBUG_PRINTF("ODBC::GetColumnValue - Time: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
+                     column.index, column.name, column.type, len, ret, buffer);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Unix Timestamp: index=%i name=%s type=%i len=%i\n", 
-                    column.index, column.name, column.type, len);
-
-      if (len == SQL_NULL_DATA) {
-        return scope.Escape(Nan::Null());
-        //return Null();
+        if (len == SQL_NULL_DATA) {
+          return scope.Escape(Nan::Null());
+        }
+        else {
+          return scope.Escape(Nan::New<String>((const char *) buffer).ToLocalChecked());
+        }
       }
-      else {
-        timeInfo.tm_year = odbcTime.year - 1900;
-        timeInfo.tm_mon = odbcTime.month - 1;
-        timeInfo.tm_mday = odbcTime.day;
-        timeInfo.tm_hour = odbcTime.hour;
-        timeInfo.tm_min = odbcTime.minute;
-        timeInfo.tm_sec = odbcTime.second;
-
-        //a negative value means that mktime() should use timezone information 
-        //and system databases to attempt to determine whether DST is in effect 
-        //at the specified time.
-        timeInfo.tm_isdst = -1;
-#ifdef TIMEGM
-        return scope.Escape(Nan::New<Date>((double(timegm(&timeInfo)) * 1000)
-                          + (odbcTime.fraction / 1000000)).ToLocalChecked());
-#else
-        return scope.Escape(Nan::New<Date>((double(timelocal(&timeInfo)) * 1000)
-                          + (odbcTime.fraction / 1000000)).ToLocalChecked());
-#endif
-        //return Date::New((double(timegm(&timeInfo)) * 1000) 
-        //                  + (odbcTime.fraction / 1000000));
-      }
-#endif
-    } break;
+      break;
     case SQL_BIT :
       //again, i'm not sure if this is cross database safe, but it works for 
       //MSSQL
