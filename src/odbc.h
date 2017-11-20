@@ -83,14 +83,14 @@ class ODBC : public Nan::ObjectWrap {
     static Column* GetColumns(SQLHSTMT hStmt, short* colCount);
     static void FreeColumns(Column* columns, short* colCount);
     static Local<Array> GetColumnMetadata(Column* columns, short* colCount);
-    static Handle<Value> GetColumnValue(SQLHSTMT hStmt, Column column, uint8_t* buffer, int bufferLength);
-    static Local<Value> GetRecordTuple (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength);
-    static Local<Value> GetRecordArray (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength);
+    static Handle<Value> GetColumnValue(SQLHSTMT hStmt, Column column, uint8_t* buffer, int bufferLength, int32_t maxValueSize, int32_t valueChunkSize);
+    static Local<Value> GetRecordTuple (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength, int32_t maxValueSize, int32_t valueChunkSize);
+    static Local<Value> GetRecordArray (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength, int32_t maxValueSize, int32_t valueChunkSize);
     static Handle<Value> CallbackSQLError(SQLSMALLINT handleType, SQLHANDLE handle, Nan::Callback* cb);
     static Local<Value> CallbackSQLError (SQLSMALLINT handleType, SQLHANDLE handle, char* message, Nan::Callback* cb);
     static Local<Object> GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle);
     static Local<Object> GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, char* message);
-    static Local<Array>  GetAllRecordsSync (HENV hENV, HDBC hDBC, HSTMT hSTMT, uint8_t* buffer, int bufferLength);
+    static Local<Array>  GetAllRecordsSync (HENV hENV, HDBC hDBC, HSTMT hSTMT, uint8_t* buffer, int bufferLength, int32_t maxValueSize, int32_t valueChunkSize);
 #ifdef dynodbc
     static NAN_METHOD(LoadODBCLibrary);
 #endif

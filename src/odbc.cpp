@@ -408,7 +408,8 @@ Local<Array> ODBC::GetColumnMetadata(Column* columns, short* colCount) {
  */
 
 Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
-                                   uint8_t* buffer, int bufferLength) {
+                                   uint8_t* buffer, int bufferLength,
+                                   int32_t maxValueSize, int32_t valueChunkSize) {
   Nan::EscapableHandleScope scope;
   SQLLEN len = 0;
 
@@ -683,7 +684,8 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
 
 Local<Value> ODBC::GetRecordTuple (SQLHSTMT hStmt,
                                    Column* columns, short* colCount,
-                                   uint8_t* buffer, int bufferLength) {
+                                   uint8_t* buffer, int bufferLength,
+                                   int32_t maxValueSize, int32_t valueChunkSize) {
   Nan::EscapableHandleScope scope;
   
   Local<Object> tuple = Nan::New<Object>();
@@ -691,10 +693,10 @@ Local<Value> ODBC::GetRecordTuple (SQLHSTMT hStmt,
   for(int i = 0; i < *colCount; i++) {
 #ifdef UNICODE
     tuple->Set( Nan::New((const uint16_t *) columns[i].name).ToLocalChecked(),
-                GetColumnValue( hStmt, columns[i], buffer, bufferLength));
+                GetColumnValue( hStmt, columns[i], buffer, bufferLength, maxValueSize, valueChunkSize));
 #else
     tuple->Set( Nan::New((const char *) columns[i].name).ToLocalChecked(),
-                GetColumnValue( hStmt, columns[i], buffer, bufferLength));
+                GetColumnValue( hStmt, columns[i], buffer, bufferLength, maxValueSize, valueChunkSize));
 #endif
   }
   
@@ -707,14 +709,15 @@ Local<Value> ODBC::GetRecordTuple (SQLHSTMT hStmt,
 
 Local<Value> ODBC::GetRecordArray (SQLHSTMT hStmt,
                                    Column* columns, short* colCount,
-                                   uint8_t* buffer, int bufferLength) {
+                                   uint8_t* buffer, int bufferLength,
+                                   int32_t maxValueSize, int32_t valueChunkSize) {
   Nan::EscapableHandleScope scope;
   
   Local<Array> array = Nan::New<Array>();
         
   for(int i = 0; i < *colCount; i++) {
     array->Set( Nan::New(i),
-                GetColumnValue( hStmt, columns[i], buffer, bufferLength));
+                GetColumnValue( hStmt, columns[i], buffer, bufferLength, maxValueSize, valueChunkSize));
   }
   
   return scope.Escape(array);
@@ -970,7 +973,9 @@ Local<Array> ODBC::GetAllRecordsSync (HENV hENV,
                                       HDBC hDBC,
                                       HSTMT hSTMT,
                                       uint8_t* buffer,
-                                      int bufferLength) {
+                                      int bufferLength,
+                                      int32_t maxValueSize,
+                                      int32_t valueChunkSize) {
   DEBUG_PRINTF("ODBC::GetAllRecordsSync\n");
   
   Nan::EscapableHandleScope scope;
@@ -1019,7 +1024,9 @@ Local<Array> ODBC::GetAllRecordsSync (HENV hENV,
         columns,
         &colCount,
         buffer,
-        bufferLength)
+        bufferLength,
+        maxValueSize,
+        valueChunkSize)
     );
 
     count++;

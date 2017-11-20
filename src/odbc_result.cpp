@@ -336,7 +336,9 @@ void ODBCResult::UV_AfterFetch(uv_work_t* work_req, int status) {
         data->objResult->columns,
         &data->objResult->colCount,
         data->objResult->buffer,
-        data->objResult->bufferLength);
+        data->objResult->bufferLength,
+        data->maxValueSize,
+        data->valueChunkSize);
     }
     else {
       info[1] = ODBC::GetRecordTuple(
@@ -344,7 +346,9 @@ void ODBCResult::UV_AfterFetch(uv_work_t* work_req, int status) {
         data->objResult->columns,
         &data->objResult->colCount,
         data->objResult->buffer,
-        data->objResult->bufferLength);
+        data->objResult->bufferLength,
+        data->maxValueSize,
+        data->valueChunkSize);
     }
 
     Nan::TryCatch try_catch;
@@ -462,7 +466,9 @@ NAN_METHOD(ODBCResult::FetchSync) {
         objResult->columns,
         &objResult->colCount,
         objResult->buffer,
-        objResult->bufferLength);
+        objResult->bufferLength,
+        maxValueSize,
+        valueChunkSize);
     }
     else {
       data = ODBC::GetRecordTuple(
@@ -470,7 +476,9 @@ NAN_METHOD(ODBCResult::FetchSync) {
         objResult->columns,
         &objResult->colCount,
         objResult->buffer,
-        objResult->bufferLength);
+        objResult->bufferLength,
+        maxValueSize,
+        valueChunkSize);
     }
     
     info.GetReturnValue().Set(data);
@@ -618,7 +626,9 @@ void ODBCResult::UV_AfterFetchAll(uv_work_t* work_req, int status) {
           self->columns,
           &self->colCount,
           self->buffer,
-          self->bufferLength)
+          self->bufferLength,
+          data->maxValueSize,
+          data->valueChunkSize)
       );
     }
     else {
@@ -629,7 +639,9 @@ void ODBCResult::UV_AfterFetchAll(uv_work_t* work_req, int status) {
           self->columns,
           &self->colCount,
           self->buffer,
-          self->bufferLength)
+          self->bufferLength,
+          data->maxValueSize,
+          data->valueChunkSize)
       );
     }
     data->count++;
@@ -778,7 +790,9 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
             self->columns,
             &self->colCount,
             self->buffer,
-            self->bufferLength)
+            self->bufferLength,
+            maxValueSize,
+            valueChunkSize)
         );
       }
       else {
@@ -789,7 +803,9 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
             self->columns,
             &self->colCount,
             self->buffer,
-            self->bufferLength)
+            self->bufferLength,
+            maxValueSize,
+            valueChunkSize)
         );
       }
       count++;
