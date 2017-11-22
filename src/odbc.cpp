@@ -28,6 +28,7 @@
 #include "odbc_statement.h"
 
 #include "util.h"
+#include "chunked_buffer.h"
 
 #ifdef dynodbc
 #include "dynodbc.h"
@@ -413,219 +414,211 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
                                    uint8_t* buffer, int bufferLength,
                                    int32_t maxValueSize, int32_t valueChunkSize) {
   Nan::EscapableHandleScope scope;
-  SQLLEN len = 0;
 
-  //reset the buffer
-  memset(buffer, NULL, sizeof(SQLTCHAR));
+  if (maxValueSize < 0 || maxValueSize > MAX_VALUE_SIZE) { maxValueSize = MAX_VALUE_SIZE; }
+  if (valueChunkSize < 0) { valueChunkSize = 1; }
+  else if (valueChunkSize > MAX_VALUE_CHUNK_SIZE) { valueChunkSize = MAX_VALUE_CHUNK_SIZE; }
 
-  //TODO: SQLGetData can supposedly return multiple chunks, need to do this to 
-  //retrieve large fields
-  int ret; 
-  
-  switch ((int) column.type) {
-    case SQL_INTEGER : 
-    case SQL_SMALLINT :
-    case SQL_TINYINT : {
-        int32_t value = 0;
-        
-        ret = SQLGetData(
-          hStmt, 
-          column.index, 
-          SQL_C_SLONG,
-          &value, 
-          sizeof(value), 
-          &len);
-        
-        DEBUG_PRINTF("ODBC::GetColumnValue - Integer: index=%i name=%s type=%lli len=%lli ret=%i val=%li\n",
-                     column.index, column.name, column.type, len, ret, value);
-        
-        if (len == SQL_NULL_DATA) {
-          return scope.Escape(Nan::Null());
-        }
-        else {
-          return scope.Escape(Nan::New<Integer>(value));
-        }
-      }
-      break;
-    case SQL_FLOAT :
-    case SQL_REAL :
-    case SQL_DOUBLE : {
-        double value;
-        
-        ret = SQLGetData(
-          hStmt, 
-          column.index, 
-          SQL_C_DOUBLE,
-          &value, 
-          sizeof(value), 
-          &len);
-        
-        DEBUG_PRINTF("ODBC::GetColumnValue - Number: index=%i name=%s type=%lli len=%lli ret=%i val=%f\n",
-                     column.index, column.name, column.type, len, ret, value);
-        
-        if (len == SQL_NULL_DATA) {
-          return scope.Escape(Nan::Null());
-        }
-        else {
-          return scope.Escape(Nan::New<Number>(value));
-        }
-      }
-      break;
-    case SQL_NUMERIC :
-    case SQL_DECIMAL :
-    case SQL_BIGINT : {
-        ret = SQLGetData(
-          hStmt,
-          column.index,
-          SQL_C_CHAR,
-          buffer,
-          bufferLength,
-          &len);
+  int ret;
+  SQLLEN len;
 
-        DEBUG_PRINTF("ODBC::GetColumnValue - Fixed Precision Number: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
-                     column.index, column.name, column.type, len, ret, buffer);
+  switch (column.type) {
+    case SQL_INTEGER:
+    case SQL_SMALLINT:
+    case SQL_TINYINT:
+    {
+      int32_t value;
 
-        if (len == SQL_NULL_DATA) {
-          return scope.Escape(Nan::Null());
-        }
-        else {
-          return scope.Escape(Nan::New<String>((const char *) buffer).ToLocalChecked());
-        }
-      }
-      break;
-    case SQL_DATE :
-    case SQL_TIME :
-    case SQL_TIMESTAMP :
-    case SQL_TYPE_DATE :
-    case SQL_TYPE_TIME :
-    case SQL_TYPE_TIMESTAMP : {
-        ret = SQLGetData(
-          hStmt,
-          column.index,
-          SQL_C_CHAR,
-          buffer,
-          bufferLength,
-          &len);
-
-        DEBUG_PRINTF("ODBC::GetColumnValue - Time: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
-                     column.index, column.name, column.type, len, ret, buffer);
-
-        if (len == SQL_NULL_DATA) {
-          return scope.Escape(Nan::Null());
-        }
-        else {
-          return scope.Escape(Nan::New<String>((const char *) buffer).ToLocalChecked());
-        }
-      }
-      break;
-    case SQL_BIT :
-      //again, i'm not sure if this is cross database safe, but it works for 
-      //MSSQL
       ret = SQLGetData(
-        hStmt, 
-        column.index, 
+        hStmt,
+        column.index,
+        SQL_C_SLONG,
+        &value,
+        sizeof(value),
+        &len);
+
+      DEBUG_PRINTF("ODBC::GetColumnValue - Integer: index=%i name=%s type=%lli len=%lli ret=%i val=%i\n",
+                   column.index, column.name, column.type, len, ret, value);
+
+      if (!SQL_SUCCEEDED(ret)) { break; }
+
+      if (len == SQL_NULL_DATA) {
+        return scope.Escape(Nan::Null());
+      }
+      return scope.Escape(Nan::New<Integer>(value));
+    }
+    case SQL_FLOAT:
+    case SQL_REAL:
+    case SQL_DOUBLE:
+    {
+      double value;
+
+      ret = SQLGetData(
+        hStmt,
+        column.index,
+        SQL_C_DOUBLE,
+        &value,
+        sizeof(value),
+        &len);
+
+      DEBUG_PRINTF("ODBC::GetColumnValue - Number: index=%i name=%s type=%lli len=%lli ret=%i val=%f\n",
+                   column.index, column.name, column.type, len, ret, value);
+
+      if (!SQL_SUCCEEDED(ret)) { break; }
+
+      if (len == SQL_NULL_DATA) {
+        return scope.Escape(Nan::Null());
+      }
+      return scope.Escape(Nan::New<Number>(value));
+    }
+    case SQL_BIT:
+    {
+      ret = SQLGetData(
+        hStmt,
+        column.index,
         SQL_C_CHAR,
         buffer,
-        bufferLength, 
+        bufferLength,
         &len);
 
       DEBUG_PRINTF("ODBC::GetColumnValue - Bit: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
                    column.index, column.name, column.type, len, ret, buffer);
 
+      if (!SQL_SUCCEEDED(ret)) { break; }
+
       if (len == SQL_NULL_DATA) {
         return scope.Escape(Nan::Null());
       }
-      else {
-        return scope.Escape(Nan::New<Boolean>((*buffer == '0') ? false : true));
-      }
-    default :
-      Local<String> str;
-      int count = 0;
-      
+      return scope.Escape(Nan::New<Boolean>((*buffer == '0') ? false : true));
+    }
+    case SQL_CHAR:
+    case SQL_VARCHAR:
+    case SQL_LONGVARCHAR:
+    case SQL_WCHAR:
+    case SQL_WVARCHAR:
+    case SQL_WLONGVARCHAR:
+    case SQL_BINARY:
+    case SQL_VARBINARY:
+    case SQL_LONGVARBINARY:
+    {
+      ChunkedBuffer cbuffer(maxValueSize);
+      SQLLEN totalSize = 0;
+
       do {
-        memset(buffer, NULL, sizeof(SQLTCHAR));
+        Chunk* chunk = cbuffer.createChunk(valueChunkSize);
+        if (!chunk) { break; }
 
         ret = SQLGetData(
           hStmt,
           column.index,
-          SQL_C_TCHAR,
-          buffer,
-          bufferLength,
+          SQL_C_BINARY,
+          chunk->buffer(),
+          chunk->bufferSize(),
           &len);
 
-        DEBUG_PRINTF("ODBC::GetColumnValue - String: index=%i name=%s type=%lli len=%lli ret=%i\n",
+        DEBUG_PRINTF("ODBC::GetColumnValue - Variable Buffer Data: index=%i name=%s type=%lli len=%lli ret=%i\n",
                      column.index, column.name, column.type, len, ret);
+
+        if (!SQL_SUCCEEDED(ret)) { break; }
+        if (ret == SQL_NO_DATA) { break; }
 
         if (len == SQL_NULL_DATA) {
           return scope.Escape(Nan::Null());
         }
-        
-        if (ret == SQL_NO_DATA) {
-          //we have captured all of the data
-          //double check that we have some data else return null
-          if (str.IsEmpty()){
-            return scope.Escape(Nan::Null());
-          }
 
-          break;
+        if (totalSize == 0 && len > 0) { totalSize = len; };
+      } while (ret != SQL_SUCCESS);
+
+      if (!SQL_SUCCEEDED(ret)) { break; }
+
+      Local<Array> buffers = Nan::New<Array>();
+      std::list<Chunk*> chunks = cbuffer.getChunks();
+
+      size_t count = 0;
+      size_t currentSize = 0;
+      size_t size;
+      uint8_t* buf;
+
+      if (totalSize <= 0) { totalSize = cbuffer.bufferSize(); }
+
+      for (std::list<Chunk*>::iterator it = chunks.begin(); it != chunks.end(); it++) {
+        size = (*it)->bufferSize();
+
+        if (size > totalSize - currentSize) {
+          size = totalSize - currentSize;
         }
-        else if (SQL_SUCCEEDED(ret)) {
-          //we have not captured all of the data yet
-          
-          if (count == 0) {
-            //no concatenation required, this is our first pass
-#ifdef UNICODE
-            str = Nan::New((const uint16_t *) buffer).ToLocalChecked();
-#else
-            str = Nan::New((const char *) buffer).ToLocalChecked();
-#endif
-          }
-          else {
-            //we need to concatenate
-#ifdef UNICODE
-            str = String::Concat(str, Nan::New((const uint16_t *) buffer).ToLocalChecked());
-#else
-            str = String::Concat(str, Nan::New((const char *) buffer).ToLocalChecked());
-#endif
-          }
-          
-          //if len is zero let's break out of the loop now and not attempt to
-          //call SQLGetData again. The specific reason for this is because
-          //some ODBC drivers may not correctly report SQL_NO_DATA the next
-          //time around causing an infinite loop here
-          if (len == 0) {
-            break;
-          }
-          
-          count += 1;
+        if (size == 0) { continue; }
+
+        if (size == (*it)->bufferSize()) {
+          buf = (*it)->detach();
+        } else {
+          buf = (uint8_t*) malloc(size);
+          if (!buf) { break; }
+          (*it)->copy(buf, size);
         }
-        else {
-          //an error has occured
-          //possible values for ret are SQL_ERROR (-1) and SQL_INVALID_HANDLE (-2)
 
-          //If we have an invalid handle, then stuff is way bad and we should abort
-          //immediately. Memory errors are bound to follow as we must be in an
-          //inconsisant state.
-          assert(ret != SQL_INVALID_HANDLE);
+        (*it)->clear();
 
-          //Not sure if throwing here will work out well for us but we can try
-          //since we should have a valid handle and the error is something we 
-          //can look into
+        buffers->Set(Nan::New((uint32_t) count), Nan::NewBuffer((char*) buf, (uint32_t) size).ToLocalChecked());
 
-          Local<Value> objError = ODBC::GetSQLError(
-            SQL_HANDLE_STMT,
-            hStmt,
-            (char *) "[node-odbc] Error in ODBC::GetColumnValue"
-          );
+        currentSize += size;
+        count++;
+      }
 
-          Nan::ThrowError(objError);
-          return scope.Escape(Nan::Undefined());
-          break;
-        }
-      } while (true);
-      
-      return scope.Escape(str);
+      return scope.Escape(buffers);
+    }
+    case SQL_NUMERIC:
+    case SQL_DECIMAL:
+    case SQL_BIGINT:
+    case SQL_DATE:
+    case SQL_TIME:
+    case SQL_TIMESTAMP:
+    case SQL_TYPE_DATE:
+    case SQL_TYPE_TIME:
+    case SQL_TYPE_TIMESTAMP:
+    case SQL_GUID:
+    default:
+    {
+      ret = SQLGetData(
+        hStmt,
+        column.index,
+        SQL_C_CHAR,
+        buffer,
+        bufferLength,
+        &len);
+
+      DEBUG_PRINTF("ODBC::GetColumnValue - Fixed Buffer String: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
+                   column.index, column.name, column.type, len, ret, buffer);
+
+      if (!SQL_SUCCEEDED(ret)) { break; }
+
+      if (len == SQL_NULL_DATA) {
+        return scope.Escape(Nan::Null());
+      }
+      return scope.Escape(Nan::New<String>((const char *) buffer).ToLocalChecked());
+    }
   }
+
+  //an error has occured
+  //possible values for ret are SQL_ERROR (-1) and SQL_INVALID_HANDLE (-2)
+
+  //If we have an invalid handle, then stuff is way bad and we should abort
+  //immediately. Memory errors are bound to follow as we must be in an
+  //inconsisant state.
+  assert(ret != SQL_INVALID_HANDLE);
+
+  //Not sure if throwing here will work out well for us but we can try
+  //since we should have a valid handle and the error is something we
+  //can look into
+
+  Local<Value> objError = ODBC::GetSQLError(
+    SQL_HANDLE_STMT,
+    hStmt,
+    (char *) "[node-odbc] Error in ODBC::GetColumnValue"
+  );
+
+  Nan::ThrowError(objError);
+  return scope.Escape(Nan::Undefined());
 }
 
 /*
