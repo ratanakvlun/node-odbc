@@ -71,6 +71,8 @@ void ODBC::Init(v8::Handle<Object> exports) {
   constructor_template->Set(Nan::New<String>("SQL_DESTROY").ToLocalChecked(), Nan::New<Number>(SQL_DESTROY), constant_attributes);
   constructor_template->Set(Nan::New<String>("FETCH_ARRAY").ToLocalChecked(), Nan::New<Number>(FETCH_ARRAY), constant_attributes);
   NODE_ODBC_DEFINE_CONSTANT(constructor_template, FETCH_OBJECT);
+  NODE_ODBC_DEFINE_CONSTANT(constructor_template, MAX_VALUE_SIZE);
+  NODE_ODBC_DEFINE_CONSTANT(constructor_template, MAX_VALUE_CHUNK_SIZE);
 
   // Prototype Methods
   Nan::SetPrototypeMethod(constructor_template, "createConnection", CreateConnection);
