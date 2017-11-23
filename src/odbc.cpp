@@ -469,8 +469,56 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
 
   int ret;
   SQLLEN len;
+  SQLLEN type = column.type;
 
-  switch (column.type) {
+  switch (type) {
+    case SQL_INTEGER:
+    case SQL_SMALLINT:
+    case SQL_TINYINT:
+    case SQL_FLOAT:
+    case SQL_REAL:
+    case SQL_DOUBLE:
+    case SQL_BIT:
+    case SQL_BINARY:
+    case SQL_VARBINARY:
+    case SQL_LONGVARBINARY:
+    case SQL_NUMERIC:
+    case SQL_DECIMAL:
+    case SQL_BIGINT:
+    case SQL_DATE:
+    case SQL_TIME:
+    case SQL_TIMESTAMP:
+    case SQL_TYPE_DATE:
+    case SQL_TYPE_TIME:
+    case SQL_TYPE_TIMESTAMP:
+    case SQL_GUID:
+      break;
+    case SQL_CHAR:
+    case SQL_VARCHAR:
+    case SQL_LONGVARCHAR:
+    case SQL_WCHAR:
+    case SQL_WVARCHAR:
+    case SQL_WLONGVARCHAR:
+    {
+      if (column.octetLength == 0 || column.octetLength > LONG_DATA_THRESHOLD) {
+        type = SQL_BINARY;
+      }
+      break;
+    }
+    default:
+    {
+      // Determine how unknown type should be treated
+      type = SQL_CHAR;
+      if (column.radix != 0) { break; }
+
+      // (column.octetLength != column.length) suggests formatting, thus likely to be char data
+      if (column.octetLength == 0 || column.octetLength > LONG_DATA_THRESHOLD || column.octetLength == column.length) {
+        type = SQL_BINARY;
+      }
+    }
+  }
+
+  switch (type) {
     case SQL_INTEGER:
     case SQL_SMALLINT:
     case SQL_TINYINT:
@@ -539,12 +587,6 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
       }
       return scope.Escape(Nan::New<Boolean>((*buffer == '0') ? false : true));
     }
-    case SQL_CHAR:
-    case SQL_VARCHAR:
-    case SQL_LONGVARCHAR:
-    case SQL_WCHAR:
-    case SQL_WVARCHAR:
-    case SQL_WLONGVARCHAR:
     case SQL_BINARY:
     case SQL_VARBINARY:
     case SQL_LONGVARBINARY:
@@ -564,7 +606,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
           chunk->bufferSize(),
           &len);
 
-        DEBUG_PRINTF("ODBC::GetColumnValue - Variable Buffer Data: index=%i name=%s type=%lli len=%lli ret=%i\n",
+        DEBUG_PRINTF("ODBC::GetColumnValue - Long Data: index=%i name=%s type=%lli len=%lli ret=%i\n",
                      column.index, column.name, column.type, len, ret);
 
         if (!SQL_SUCCEEDED(ret)) { break; }
@@ -615,6 +657,12 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
 
       return scope.Escape(buffers);
     }
+    case SQL_CHAR:
+    case SQL_VARCHAR:
+    case SQL_LONGVARCHAR:
+    case SQL_WCHAR:
+    case SQL_WVARCHAR:
+    case SQL_WLONGVARCHAR:
     case SQL_NUMERIC:
     case SQL_DECIMAL:
     case SQL_BIGINT:
@@ -635,7 +683,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         bufferLength,
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Fixed Buffer String: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
+      DEBUG_PRINTF("ODBC::GetColumnValue - String: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
                    column.index, column.name, column.type, len, ret, buffer);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
