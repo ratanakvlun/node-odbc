@@ -458,6 +458,10 @@ Local<Array> ODBC::GetColumnMetadata(Column* columns, short* colCount) {
  * GetColumnValue
  */
 
+void FreeBufferCallback(char* data, void* hint) {
+  free(data);
+}
+
 Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
                                    uint8_t* buffer, int bufferLength,
                                    int32_t maxValueSize, int32_t valueChunkSize) {
@@ -649,7 +653,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
 
         (*it)->clear();
 
-        buffers->Set(Nan::New((uint32_t) count), Nan::NewBuffer((char*) buf, (uint32_t) size).ToLocalChecked());
+        buffers->Set(Nan::New((uint32_t) count), Nan::NewBuffer((char*) buf, (size_t) size, FreeBufferCallback, NULL).ToLocalChecked());
 
         currentSize += size;
         count++;
