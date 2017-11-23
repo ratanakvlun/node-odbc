@@ -64,6 +64,10 @@ typedef struct {
   uint8_t *name;
   uint8_t *typeName;
   SQLLEN type;
+  SQLLEN length;
+  SQLLEN radix;
+  SQLLEN octetLength;
+  SQLLEN scale;
   SQLUSMALLINT index;
 } Column;
 

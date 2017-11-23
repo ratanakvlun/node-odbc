@@ -315,15 +315,6 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            &buflen,
                            NULL);
 
-    //get the column type and store it directly in column[i].type
-    ret = SQLColAttribute( hStmt,
-                           columns[i].index,
-                           SQL_DESC_CONCISE_TYPE,
-                           NULL,
-                           0,
-                           NULL,
-                           &columns[i].type);
-
     //get the estimated size of column type name
     ret = SQLColAttribute( hStmt,
                            columns[i].index,
@@ -345,6 +336,51 @@ Column* ODBC::GetColumns(SQLHSTMT hStmt, short* colCount) {
                            estimatedSize,
                            &buflen,
                            NULL);
+
+    columns[i].type = 0;
+    ret = SQLColAttribute(hStmt,
+      columns[i].index,
+      SQL_DESC_CONCISE_TYPE,
+      NULL,
+      0,
+      NULL,
+      &columns[i].type);
+
+    columns[i].length = 0;
+    ret = SQLColAttribute(hStmt,
+      columns[i].index,
+      SQL_DESC_LENGTH,
+      NULL,
+      0,
+      NULL,
+      &columns[i].length);
+
+    columns[i].octetLength = 0;
+    ret = SQLColAttribute(hStmt,
+      columns[i].index,
+      SQL_DESC_OCTET_LENGTH,
+      NULL,
+      0,
+      NULL,
+      &columns[i].octetLength);
+
+    columns[i].scale = 0;
+    ret = SQLColAttribute(hStmt,
+      columns[i].index,
+      SQL_DESC_SCALE,
+      NULL,
+      0,
+      NULL,
+      &columns[i].scale);
+
+    columns[i].radix = 0;
+    ret = SQLColAttribute(hStmt,
+      columns[i].index,
+      SQL_DESC_NUM_PREC_RADIX,
+      NULL,
+      0,
+      NULL,
+      &columns[i].radix);
   }
   
   return columns;
@@ -378,7 +414,7 @@ Local<Array> ODBC::GetColumnMetadata(Column* columns, short* colCount) {
     Local<Object> metadataObj = Nan::New<Object>();
 
     metadataObj->Set(Nan::New<String>("INDEX").ToLocalChecked(),
-                     Nan::New(i));
+                     Nan::New(columns[i].index));
 
 #ifdef UNICODE
     metadataObj->Set(Nan::New<String>("COLUMN_NAME").ToLocalChecked(),
@@ -388,9 +424,6 @@ Local<Array> ODBC::GetColumnMetadata(Column* columns, short* colCount) {
                      Nan::New<String>((const char *) columns[i].name).ToLocalChecked());
 #endif
 
-    metadataObj->Set(Nan::New<String>("DATA_TYPE").ToLocalChecked(),
-                     Nan::New<Number>(columns[i].type));
-
 #ifdef UNICODE
     metadataObj->Set(Nan::New<String>("TYPE_NAME").ToLocalChecked(),
                      Nan::New<String>((const uint16_t *) columns[i].typeName).ToLocalChecked());
@@ -398,6 +431,21 @@ Local<Array> ODBC::GetColumnMetadata(Column* columns, short* colCount) {
     metadataObj->Set(Nan::New<String>("TYPE_NAME").ToLocalChecked(),
                      Nan::New<String>((const char *) columns[i].typeName).ToLocalChecked());
 #endif
+
+    metadataObj->Set(Nan::New<String>("DATA_TYPE").ToLocalChecked(),
+      Nan::New<Number>(columns[i].type));
+
+    metadataObj->Set(Nan::New<String>("COLUMN_SIZE").ToLocalChecked(),
+      Nan::New<Number>(columns[i].length));
+
+    metadataObj->Set(Nan::New<String>("BUFFER_LENGTH").ToLocalChecked(),
+      Nan::New<Number>(columns[i].octetLength));
+
+    metadataObj->Set(Nan::New<String>("DECIMAL_DIGITS").ToLocalChecked(),
+      Nan::New<Number>(columns[i].scale));
+
+    metadataObj->Set(Nan::New<String>("NUM_PREC_RADIX").ToLocalChecked(),
+      Nan::New<Number>(columns[i].radix));
 
     columnMetadata->Set(Nan::New(i),
       metadataObj);
