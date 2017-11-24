@@ -537,7 +537,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         sizeof(value),
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Integer: index=%i name=%s type=%lli len=%lli ret=%i val=%i\n",
+      DEBUG_PRINTF("ODBC::GetColumnValue - Integer: index=%i name=%s type=%zi len=%zi ret=%i val=%i\n",
                    column.index, column.name, column.type, len, ret, value);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
@@ -561,7 +561,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         sizeof(value),
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Number: index=%i name=%s type=%lli len=%lli ret=%i val=%f\n",
+      DEBUG_PRINTF("ODBC::GetColumnValue - Number: index=%i name=%s type=%zi len=%zi ret=%i val=%f\n",
                    column.index, column.name, column.type, len, ret, value);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
@@ -581,7 +581,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         bufferLength,
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Bit: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
+      DEBUG_PRINTF("ODBC::GetColumnValue - Bit: index=%i name=%s type=%zi len=%zi ret=%i val=%s\n",
                    column.index, column.name, column.type, len, ret, buffer);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
@@ -610,7 +610,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
           chunk->bufferSize(),
           &len);
 
-        DEBUG_PRINTF("ODBC::GetColumnValue - Long Data: index=%i name=%s type=%lli len=%lli ret=%i\n",
+        DEBUG_PRINTF("ODBC::GetColumnValue - Long Data: index=%i name=%s type=%zi len=%zi ret=%i\n",
                      column.index, column.name, column.type, len, ret);
 
         if (!SQL_SUCCEEDED(ret)) { break; }
@@ -687,7 +687,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         bufferLength,
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - String: index=%i name=%s type=%lli len=%lli ret=%i val=%s\n",
+      DEBUG_PRINTF("ODBC::GetColumnValue - String: index=%i name=%s type=%zi len=%zi ret=%i val=%s\n",
                    column.index, column.name, column.type, len, ret, buffer);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
@@ -788,7 +788,7 @@ Parameter* ODBC::GetParametersFromArray (Local<Array> values, int *paramCount) {
     params[i].BufferLength     = 0;
     params[i].DecimalDigits    = 0;
 
-    DEBUG_PRINTF("ODBC::GetParametersFromArray - param[%i].length = %lli\n",
+    DEBUG_PRINTF("ODBC::GetParametersFromArray - param[%i].length = %zi\n",
                  i, params[i].StrLen_or_IndPtr);
 
     if (value->IsString()) {
@@ -812,7 +812,7 @@ Parameter* ODBC::GetParametersFromArray (Local<Array> values, int *paramCount) {
       string->WriteUtf8((char *) params[i].ParameterValuePtr);
 #endif
 
-      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsString(): params[%i] c_type=%i type=%i buffer_length=%lli size=%lli length=%lli value=%s\n",
+      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsString(): params[%i] c_type=%i type=%i buffer_length=%zi size=%zi length=%zi value=%s\n",
                     i, params[i].ValueType, params[i].ParameterType,
                     params[i].BufferLength, params[i].ColumnSize, params[i].StrLen_or_IndPtr, 
                     (char*) params[i].ParameterValuePtr);
@@ -822,7 +822,7 @@ Parameter* ODBC::GetParametersFromArray (Local<Array> values, int *paramCount) {
       params[i].ParameterType   = SQL_VARCHAR;
       params[i].StrLen_or_IndPtr = SQL_NULL_DATA;
 
-      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsNull(): params[%i] c_type=%i type=%i buffer_length=%lli size=%lli length=%lli\n",
+      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsNull(): params[%i] c_type=%i type=%i buffer_length=%zi size=%zi length=%zi\n",
                    i, params[i].ValueType, params[i].ParameterType,
                    params[i].BufferLength, params[i].ColumnSize, params[i].StrLen_or_IndPtr);
     }
@@ -833,7 +833,7 @@ Parameter* ODBC::GetParametersFromArray (Local<Array> values, int *paramCount) {
       params[i].ParameterValuePtr = number;
       params[i].StrLen_or_IndPtr = 0;
       
-      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsInt32(): params[%i] c_type=%i type=%i buffer_length=%lli size=%lli length=%lli value=%lld\n",
+      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsInt32(): params[%i] c_type=%i type=%i buffer_length=%zi size=%zi length=%zi value=%lld\n",
                     i, params[i].ValueType, params[i].ParameterType,
                     params[i].BufferLength, params[i].ColumnSize, params[i].StrLen_or_IndPtr,
                     *number);
@@ -849,7 +849,7 @@ Parameter* ODBC::GetParametersFromArray (Local<Array> values, int *paramCount) {
       params[i].DecimalDigits     = 7;
       params[i].ColumnSize        = sizeof(double);
 
-      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsNumber(): params[%i] c_type=%i type=%i buffer_length=%lli size=%lli length=%lli value=%f\n",
+      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsNumber(): params[%i] c_type=%i type=%i buffer_length=%zi size=%zi length=%zi value=%f\n",
                     i, params[i].ValueType, params[i].ParameterType,
                     params[i].BufferLength, params[i].ColumnSize, params[i].StrLen_or_IndPtr,
 		                *number);
@@ -861,7 +861,7 @@ Parameter* ODBC::GetParametersFromArray (Local<Array> values, int *paramCount) {
       params[i].ParameterValuePtr = boolean;
       params[i].StrLen_or_IndPtr  = 0;
       
-      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsBoolean(): params[%i] c_type=%i type=%i buffer_length=%lli size=%lli length=%lli\n",
+      DEBUG_PRINTF("ODBC::GetParametersFromArray - IsBoolean(): params[%i] c_type=%i type=%i buffer_length=%zi size=%zi length=%zi\n",
                    i, params[i].ValueType, params[i].ParameterType,
                    params[i].BufferLength, params[i].ColumnSize, params[i].StrLen_or_IndPtr);
     }
