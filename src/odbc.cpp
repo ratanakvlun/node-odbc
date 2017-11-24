@@ -1009,6 +1009,28 @@ Local<Object> ODBC::GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, char*
 }
 
 /*
+ * GetError
+ */
+
+Local<Object> ODBC::GetError(const char* message, const char* code, const char* hint) {
+  Nan::EscapableHandleScope scope;
+
+  Local<Object> objError = Nan::New<Object>();
+  objError->SetPrototype(Exception::Error(Nan::New<String>(message).ToLocalChecked()));
+  objError->Set(Nan::New<String>("message").ToLocalChecked(), Nan::New<String>(message).ToLocalChecked());
+
+  if (code) {
+    objError->Set(Nan::New<String>("code").ToLocalChecked(), Nan::New<String>(code).ToLocalChecked());
+  }
+
+  if (hint) {
+    objError->Set(Nan::New<String>("error").ToLocalChecked(), Nan::New<String>(hint).ToLocalChecked());
+  }
+
+  return scope.Escape(objError);
+}
+
+/*
  * GetAllRecordsSync
  */
 
