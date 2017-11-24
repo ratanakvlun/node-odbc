@@ -17,6 +17,6 @@
 #ifndef _SRC_UTIL_H
 #define _SRC_UTIL_H
 
-#define ALIGN_SIZE(v) (v > v % sizeof(wchar_t) ? v - v % sizeof(wchar_t) : 0)
+#define ALIGN_SIZE(v) (v > v % sizeof(SQLWCHAR) ? v - v % sizeof(SQLWCHAR) : 0)
 
 #endif
