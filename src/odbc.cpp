@@ -467,6 +467,10 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
                                    int32_t maxValueSize, int32_t valueChunkSize) {
   Nan::EscapableHandleScope scope;
 
+  const char* errHint = "[node-odbc] Error in ODBC::GetColumnValue";
+  Local<Value> objError;
+  bool hasError = false;
+
   if (maxValueSize < 0 || maxValueSize > MAX_VALUE_SIZE) { maxValueSize = MAX_VALUE_SIZE; }
   if (valueChunkSize < 0) { valueChunkSize = 1; }
   else if (valueChunkSize > MAX_VALUE_CHUNK_SIZE) { valueChunkSize = MAX_VALUE_CHUNK_SIZE; }
@@ -600,7 +604,13 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
 
       do {
         Chunk* chunk = cbuffer.createChunk(valueChunkSize);
-        if (!chunk) { break; }
+        if (!chunk) {
+          if (!cbuffer.isFull()) {
+            objError = GetError("[node-odbc] Failed to allocate buffer for column data", "ENOMEM", errHint);
+            hasError = true;
+          }
+          break;
+        }
 
         ret = SQLGetData(
           hStmt,
@@ -623,7 +633,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         if (totalSize == 0 && len > 0) { totalSize = len; };
       } while (ret != SQL_SUCCESS);
 
-      if (!SQL_SUCCEEDED(ret)) { break; }
+      if (hasError || !SQL_SUCCEEDED(ret)) { break; }
 
       Local<Array> buffers = Nan::New<Array>();
       std::list<Chunk*> chunks = cbuffer.getChunks();
@@ -700,22 +710,25 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
   }
 
   //an error has occured
-  //possible values for ret are SQL_ERROR (-1) and SQL_INVALID_HANDLE (-2)
 
-  //If we have an invalid handle, then stuff is way bad and we should abort
-  //immediately. Memory errors are bound to follow as we must be in an
-  //inconsisant state.
-  assert(ret != SQL_INVALID_HANDLE);
+  if (!hasError) {
+    //possible values for ret are SQL_ERROR (-1) and SQL_INVALID_HANDLE (-2)
 
-  //Not sure if throwing here will work out well for us but we can try
-  //since we should have a valid handle and the error is something we
-  //can look into
+    //If we have an invalid handle, then stuff is way bad and we should abort
+    //immediately. Memory errors are bound to follow as we must be in an
+    //inconsisant state.
+    assert(ret != SQL_INVALID_HANDLE);
 
-  Local<Value> objError = ODBC::GetSQLError(
-    SQL_HANDLE_STMT,
-    hStmt,
-    (char *) "[node-odbc] Error in ODBC::GetColumnValue"
-  );
+    //Not sure if throwing here will work out well for us but we can try
+    //since we should have a valid handle and the error is something we
+    //can look into
+
+    objError = ODBC::GetSQLError(
+      SQL_HANDLE_STMT,
+      hStmt,
+      errHint
+    );
+  }
 
   Nan::ThrowError(objError);
   return scope.Escape(Nan::Undefined());
@@ -918,7 +931,7 @@ Local<Object> ODBC::GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle) {
     (char *) "[node-odbc] SQL_ERROR"));
 }
 
-Local<Object> ODBC::GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, char* message) {
+Local<Object> ODBC::GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, const char* message) {
   Nan::EscapableHandleScope scope;
   
   DEBUG_PRINTF("ODBC::GetSQLError : handleType=%i, handle=%p\n", handleType, handle);
