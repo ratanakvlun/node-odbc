@@ -26,6 +26,8 @@
 #include "odbc_result.h"
 #include "odbc_statement.h"
 
+#include "util.h"
+
 using namespace v8;
 using namespace node;
 
@@ -127,10 +129,10 @@ NAN_METHOD(ODBCStatement::New) {
   ODBCStatement* stmt = new ODBCStatement(hENV, hDBC, hSTMT);
   
   //specify the buffer length
-  stmt->bufferLength = MAX_VALUE_SIZE - 1;
+  stmt->bufferLength = ALIGN_SIZE(FIXED_BUFFER_SIZE);
   
   //initialze a buffer for this object
-  stmt->buffer = (uint16_t *) malloc(stmt->bufferLength + 1);
+  stmt->buffer = (uint8_t *) malloc(stmt->bufferLength);
   //TODO: make sure the malloc succeeded
 
   //set the initial colCount to 0

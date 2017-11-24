@@ -97,7 +97,7 @@ protected:
     Parameter *params;
     int paramCount;
     
-    uint16_t *buffer;
+    uint8_t *buffer;
     int bufferLength;
     Column *columns;
     short colCount;

@@ -1,4 +1,5 @@
 /*
+  Copyright (c) 2017, Ratanak Lun <ratanakvlun@gmail.com>
   Copyright (c) 2013, Dan VerWeire<dverweire@gmail.com>
 
   Permission to use, copy, modify, and/or distribute this software for any
@@ -23,6 +24,9 @@ class ODBCResult : public Nan::ObjectWrap {
   public:
    static Nan::Persistent<String> OPTION_FETCH_MODE;
    static Nan::Persistent<String> OPTION_INCLUDE_METADATA;
+   static Nan::Persistent<String> OPTION_MAX_VALUE_SIZE;
+   static Nan::Persistent<String> OPTION_VALUE_CHUNK_SIZE;
+
    static Nan::Persistent<Function> constructor;
    static void Init(v8::Handle<Object> exports);
    
@@ -70,6 +74,10 @@ public:
     static NAN_SETTER(FetchModeSetter);
     static NAN_GETTER(IncludeMetadataGetter);
     static NAN_SETTER(IncludeMetadataSetter);
+    static NAN_GETTER(MaxValueSizeGetter);
+    static NAN_SETTER(MaxValueSizeSetter);
+    static NAN_GETTER(ValueChunkSizeGetter);
+    static NAN_SETTER(ValueChunkSizeSetter);
 
 protected:
     struct fetch_work_data {
@@ -79,6 +87,9 @@ protected:
       
       int fetchMode;
       bool includeMetadata;
+      int32_t maxValueSize;
+      int32_t valueChunkSize;
+
       int count;
       int errorCount;
       Nan::Persistent<Array> rows;
@@ -92,10 +103,13 @@ protected:
     HDBC m_hDBC;
     HSTMT m_hSTMT;
     bool m_canFreeHandle;
+
     int m_fetchMode;
     bool m_includeMetadata;
+    int32_t m_maxValueSize;
+    int32_t m_valueChunkSize;
     
-    uint16_t *buffer;
+    uint8_t *buffer;
     int bufferLength;
     Column *columns;
     short colCount;

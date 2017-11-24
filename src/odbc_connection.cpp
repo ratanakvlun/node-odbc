@@ -1061,7 +1061,7 @@ NAN_METHOD(ODBCConnection::QuerySync) {
         prm = params[i];
         
         DEBUG_PRINTF(
-          "ODBCConnection::UV_Query - param[%i]: ValueType=%i type=%i BufferLength=%lli size=%lli length=%lli &length=%lli\n", i, prm.ValueType, prm.ParameterType, 
+          "ODBCConnection::UV_Query - param[%i]: ValueType=%i type=%i BufferLength=%zi size=%zi length=%zi &length=%zi\n", i, prm.ValueType, prm.ParameterType,
           prm.BufferLength, prm.ColumnSize, prm.StrLen_or_IndPtr, params[i].StrLen_or_IndPtr);
 
         ret = SQLBindParameter(

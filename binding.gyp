@@ -7,7 +7,8 @@
         'src/odbc_connection.cpp',
         'src/odbc_statement.cpp',
         'src/odbc_result.cpp',
-        'src/dynodbc.cpp'
+        'src/dynodbc.cpp',
+        'src/chunked_buffer.cpp'
       ],
       'cflags' : ['-Wall', '-Wextra', '-Wno-unused-parameter'],
       'include_dirs': [

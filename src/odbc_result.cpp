@@ -1,4 +1,5 @@
 /*
+  Copyright (c) 2017, Ratanak Lun <ratanakvlun@gmail.com>
   Copyright (c) 2013, Dan VerWeire<dverweire@gmail.com>
 
   Permission to use, copy, modify, and/or distribute this software for any
@@ -26,12 +27,17 @@
 #include "odbc_result.h"
 #include "odbc_statement.h"
 
+#include "util.h"
+
 using namespace v8;
 using namespace node;
 
 Nan::Persistent<Function> ODBCResult::constructor;
+
 Nan::Persistent<String> ODBCResult::OPTION_FETCH_MODE;
 Nan::Persistent<String> ODBCResult::OPTION_INCLUDE_METADATA;
+Nan::Persistent<String> ODBCResult::OPTION_MAX_VALUE_SIZE;
+Nan::Persistent<String> ODBCResult::OPTION_VALUE_CHUNK_SIZE;
 
 void ODBCResult::Init(v8::Handle<Object> exports) {
   DEBUG_PRINTF("ODBCResult::Init\n");
@@ -60,11 +66,15 @@ void ODBCResult::Init(v8::Handle<Object> exports) {
   // Options
   OPTION_FETCH_MODE.Reset(Nan::New("fetchMode").ToLocalChecked());
   OPTION_INCLUDE_METADATA.Reset(Nan::New("includeMetadata").ToLocalChecked());
+  OPTION_MAX_VALUE_SIZE.Reset(Nan::New("maxValueSize").ToLocalChecked());
+  OPTION_VALUE_CHUNK_SIZE.Reset(Nan::New("valueChunkSize").ToLocalChecked());
 
   // Properties
   Nan::SetAccessor(instance_template, Nan::New("fetchMode").ToLocalChecked(), FetchModeGetter, FetchModeSetter);
   Nan::SetAccessor(instance_template, Nan::New("includeMetadata").ToLocalChecked(), IncludeMetadataGetter, IncludeMetadataSetter);
-  
+  Nan::SetAccessor(instance_template, Nan::New("maxValueSize").ToLocalChecked(), MaxValueSizeGetter, MaxValueSizeSetter);
+  Nan::SetAccessor(instance_template, Nan::New("valueChunkSize").ToLocalChecked(), ValueChunkSizeGetter, ValueChunkSizeSetter);
+
   // Attach the Database Constructor to the target object
   constructor.Reset(constructor_template->GetFunction());
   exports->Set(Nan::New("ODBCResult").ToLocalChecked(),
@@ -126,10 +136,10 @@ NAN_METHOD(ODBCResult::New) {
   delete canFreeHandle;
 
   //specify the buffer length
-  objODBCResult->bufferLength = MAX_VALUE_SIZE - 1;
-  
+  objODBCResult->bufferLength = ALIGN_SIZE(FIXED_BUFFER_SIZE);
+
   //initialze a buffer for this object
-  objODBCResult->buffer = (uint16_t *) malloc(objODBCResult->bufferLength + 1);
+  objODBCResult->buffer = (uint8_t *) malloc(objODBCResult->bufferLength);
   //TODO: make sure the malloc succeeded
 
   //set the initial colCount to 0
@@ -138,7 +148,9 @@ NAN_METHOD(ODBCResult::New) {
   //set option defaults
   objODBCResult->m_fetchMode = FETCH_OBJECT;
   objODBCResult->m_includeMetadata = false;
-  
+  objODBCResult->m_maxValueSize = MAX_VALUE_SIZE_DEFAULT;
+  objODBCResult->m_valueChunkSize = MAX_VALUE_CHUNK_SIZE_DEFAULT;
+
   objODBCResult->Wrap(info.Holder());
   
   info.GetReturnValue().Set(info.Holder());
@@ -176,6 +188,34 @@ NAN_SETTER(ODBCResult::IncludeMetadataSetter) {
   }
 }
 
+NAN_GETTER(ODBCResult::MaxValueSizeGetter) {
+  ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
+
+  info.GetReturnValue().Set(Nan::New(obj->m_maxValueSize));
+}
+
+NAN_SETTER(ODBCResult::MaxValueSizeSetter) {
+  ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
+
+  if (value->IsInt32()) {
+    obj->m_maxValueSize = value->Int32Value();
+  }
+}
+
+NAN_GETTER(ODBCResult::ValueChunkSizeGetter) {
+  ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
+
+  info.GetReturnValue().Set(Nan::New(obj->m_valueChunkSize));
+}
+
+NAN_SETTER(ODBCResult::ValueChunkSizeSetter) {
+  ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
+
+  if (value->IsInt32()) {
+    obj->m_valueChunkSize = value->Int32Value();
+  }
+}
+
 /*
  * Fetch
  */
@@ -192,9 +232,11 @@ NAN_METHOD(ODBCResult::Fetch) {
   
   Local<Function> cb;
    
-  //set the fetch mode to the default of this instance
+  //set fetch options from result options
   data->fetchMode = objODBCResult->m_fetchMode;
-  
+  data->maxValueSize = objODBCResult->m_maxValueSize;
+  data->valueChunkSize = objODBCResult->m_valueChunkSize;
+
   if (info.Length() == 1 && info[0]->IsFunction()) {
     cb = Local<Function>::Cast(info[0]);
   }
@@ -206,6 +248,16 @@ NAN_METHOD(ODBCResult::Fetch) {
     Local<String> fetchModeKey = Nan::New<String>(OPTION_FETCH_MODE);
     if (obj->Has(fetchModeKey) && obj->Get(fetchModeKey)->IsInt32()) {
       data->fetchMode = obj->Get(fetchModeKey)->ToInt32()->Value();
+    }
+
+    Local<String> maxValueSizeKey = Nan::New<String>(OPTION_MAX_VALUE_SIZE);
+    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsInt32()) {
+      data->maxValueSize = obj->Get(maxValueSizeKey)->ToInt32()->Value();
+    }
+
+    Local<String> valueChunkSizeKey = Nan::New<String>(OPTION_VALUE_CHUNK_SIZE);
+    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsInt32()) {
+      data->valueChunkSize = obj->Get(valueChunkSizeKey)->ToInt32()->Value();
     }
   }
   else {
@@ -285,7 +337,9 @@ void ODBCResult::UV_AfterFetch(uv_work_t* work_req, int status) {
         data->objResult->columns,
         &data->objResult->colCount,
         data->objResult->buffer,
-        data->objResult->bufferLength);
+        data->objResult->bufferLength,
+        data->maxValueSize,
+        data->valueChunkSize);
     }
     else {
       info[1] = ODBC::GetRecordTuple(
@@ -293,7 +347,9 @@ void ODBCResult::UV_AfterFetch(uv_work_t* work_req, int status) {
         data->objResult->columns,
         &data->objResult->colCount,
         data->objResult->buffer,
-        data->objResult->bufferLength);
+        data->objResult->bufferLength,
+        data->maxValueSize,
+        data->valueChunkSize);
     }
 
     Nan::TryCatch try_catch;
@@ -351,14 +407,27 @@ NAN_METHOD(ODBCResult::FetchSync) {
   Local<Value> objError;
   bool moreWork = true;
   bool error = false;
+
   int fetchMode = objResult->m_fetchMode;
-  
+  int32_t maxValueSize = objResult->m_maxValueSize;
+  int32_t valueChunkSize = objResult->m_valueChunkSize;
+
   if (info.Length() == 1 && info[0]->IsObject()) {
     Local<Object> obj = info[0]->ToObject();
     
     Local<String> fetchModeKey = Nan::New<String>(OPTION_FETCH_MODE);
     if (obj->Has(fetchModeKey) && obj->Get(fetchModeKey)->IsInt32()) {
       fetchMode = obj->Get(fetchModeKey)->ToInt32()->Value();
+    }
+
+    Local<String> maxValueSizeKey = Nan::New<String>(OPTION_MAX_VALUE_SIZE);
+    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsInt32()) {
+      maxValueSize = obj->Get(maxValueSizeKey)->ToInt32()->Value();
+    }
+
+    Local<String> valueChunkSizeKey = Nan::New<String>(OPTION_VALUE_CHUNK_SIZE);
+    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsInt32()) {
+      valueChunkSize = obj->Get(valueChunkSizeKey)->ToInt32()->Value();
     }
   }
   
@@ -398,7 +467,9 @@ NAN_METHOD(ODBCResult::FetchSync) {
         objResult->columns,
         &objResult->colCount,
         objResult->buffer,
-        objResult->bufferLength);
+        objResult->bufferLength,
+        maxValueSize,
+        valueChunkSize);
     }
     else {
       data = ODBC::GetRecordTuple(
@@ -406,7 +477,9 @@ NAN_METHOD(ODBCResult::FetchSync) {
         objResult->columns,
         &objResult->colCount,
         objResult->buffer,
-        objResult->bufferLength);
+        objResult->bufferLength,
+        maxValueSize,
+        valueChunkSize);
     }
     
     info.GetReturnValue().Set(data);
@@ -444,6 +517,8 @@ NAN_METHOD(ODBCResult::FetchAll) {
   
   data->fetchMode = objODBCResult->m_fetchMode;
   data->includeMetadata = objODBCResult->m_includeMetadata;
+  data->maxValueSize = objODBCResult->m_maxValueSize;
+  data->valueChunkSize = objODBCResult->m_valueChunkSize;
   
   if (info.Length() == 1 && info[0]->IsFunction()) {
     cb = Local<Function>::Cast(info[0]);
@@ -462,8 +537,15 @@ NAN_METHOD(ODBCResult::FetchAll) {
     if (obj->Has(includeMetadataKey) && obj->Get(includeMetadataKey)->IsBoolean()) {
       data->includeMetadata = obj->Get(includeMetadataKey)->ToBoolean()->Value();
     }
-    else {
-      data->includeMetadata = false;
+
+    Local<String> maxValueSizeKey = Nan::New<String>(OPTION_MAX_VALUE_SIZE);
+    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsInt32()) {
+      data->maxValueSize = obj->Get(maxValueSizeKey)->ToInt32()->Value();
+    }
+
+    Local<String> valueChunkSizeKey = Nan::New<String>(OPTION_VALUE_CHUNK_SIZE);
+    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsInt32()) {
+      data->valueChunkSize = obj->Get(valueChunkSizeKey)->ToInt32()->Value();
     }
   }
   else {
@@ -545,7 +627,9 @@ void ODBCResult::UV_AfterFetchAll(uv_work_t* work_req, int status) {
           self->columns,
           &self->colCount,
           self->buffer,
-          self->bufferLength)
+          self->bufferLength,
+          data->maxValueSize,
+          data->valueChunkSize)
       );
     }
     else {
@@ -556,7 +640,9 @@ void ODBCResult::UV_AfterFetchAll(uv_work_t* work_req, int status) {
           self->columns,
           &self->colCount,
           self->buffer,
-          self->bufferLength)
+          self->bufferLength,
+          data->maxValueSize,
+          data->valueChunkSize)
       );
     }
     data->count++;
@@ -629,8 +715,11 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
   SQLRETURN ret;
   int count = 0;
   int errorCount = 0;
+
   int fetchMode = self->m_fetchMode;
   bool includeMetadata = self->m_includeMetadata;
+  int32_t maxValueSize = self->m_maxValueSize;
+  int32_t valueChunkSize = self->m_valueChunkSize;
 
   if (info.Length() == 1 && info[0]->IsObject()) {
     Local<Object> obj = info[0]->ToObject();
@@ -643,6 +732,16 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
     Local<String> includeMetadataKey = Nan::New<String>(OPTION_INCLUDE_METADATA);
     if (obj->Has(includeMetadataKey) && obj->Get(includeMetadataKey)->IsBoolean()) {
       includeMetadata = obj->Get(includeMetadataKey)->ToBoolean()->Value();
+    }
+
+    Local<String> maxValueSizeKey = Nan::New<String>(OPTION_MAX_VALUE_SIZE);
+    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsInt32()) {
+      maxValueSize = obj->Get(maxValueSizeKey)->ToInt32()->Value();
+    }
+
+    Local<String> valueChunkSizeKey = Nan::New<String>(OPTION_VALUE_CHUNK_SIZE);
+    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsInt32()) {
+      valueChunkSize = obj->Get(valueChunkSizeKey)->ToInt32()->Value();
     }
   }
   
@@ -692,7 +791,9 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
             self->columns,
             &self->colCount,
             self->buffer,
-            self->bufferLength)
+            self->bufferLength,
+            maxValueSize,
+            valueChunkSize)
         );
       }
       else {
@@ -703,7 +804,9 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
             self->columns,
             &self->colCount,
             self->buffer,
-            self->bufferLength)
+            self->bufferLength,
+            maxValueSize,
+            valueChunkSize)
         );
       }
       count++;
