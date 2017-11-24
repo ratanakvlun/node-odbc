@@ -162,6 +162,10 @@ size_t ChunkedBuffer::size() {
   return size;
 }
 
+bool ChunkedBuffer::isFull() {
+  return this->size() == this->_maxSize;
+}
+
 std::list<Chunk*> ChunkedBuffer::getChunks() {
   return this->_chunks;
 }

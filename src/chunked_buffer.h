@@ -54,6 +54,7 @@ public:
   std::list<Chunk*> getChunks();
   size_t bufferSize();
   size_t size();
+  bool isFull();
 
   Chunk* createChunk(size_t size);
   size_t toBinaryBuffer(uint8_t** out);
