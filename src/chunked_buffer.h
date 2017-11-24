@@ -19,6 +19,8 @@
 #ifndef _SRC_CHUNKED_BUFFER_H
 #define _SRC_CHUNKED_BUFFER_H
 
+#define WIDE_CHAR unsigned short
+
 class Chunk {
 public:
   enum Type { Binary, Char, WideChar };
@@ -56,7 +58,7 @@ public:
   Chunk* createChunk(size_t size);
   size_t toBinaryBuffer(uint8_t** out);
   size_t toStringBuffer(char** out);
-  size_t toWideStringBuffer(wchar_t** out);
+  size_t toWideStringBuffer(WIDE_CHAR** out);
 
 private:
   Chunk::Type _type;

@@ -21,8 +21,8 @@ Chunk::Chunk(size_t size, Chunk::Type type) {
   this->_buffer = NULL;
 
   if (type == Chunk::Type::WideChar) {
-    size = size > 0 && size < sizeof(wchar_t) * 2 ? sizeof(wchar_t) * 2 : size;
-    size = size > size % sizeof(wchar_t) ? size - size % sizeof(wchar_t) : 0;
+    size = size > 0 && size < sizeof(WIDE_CHAR) * 2 ? sizeof(WIDE_CHAR) * 2 : size;
+    size = size > size % sizeof(WIDE_CHAR) ? size - size % sizeof(WIDE_CHAR) : 0;
   } else if (type == Chunk::Type::Char) {
     size = size > 0 && size < sizeof(char) * 2 ? sizeof(char) * 2 : size;
   }
@@ -62,7 +62,7 @@ size_t Chunk::size() {
   size_t nullBytes = 0;
 
   if (this->_type == Chunk::Type::WideChar) {
-    nullBytes = sizeof(wchar_t);
+    nullBytes = sizeof(WIDE_CHAR);
   } else if (this->_type == Chunk::Type::Char) {
     nullBytes = sizeof(char);
   }
@@ -90,8 +90,8 @@ size_t Chunk::copyString(uint8_t* dest, size_t size) {
   size_t count = size;
 
   if (this->_type == Chunk::Type::WideChar) {
-    count = size > sizeof(wchar_t) ? size - sizeof(wchar_t) : 0;
-    count = count > count % sizeof(wchar_t) ? count - count % sizeof(wchar_t) : 0;
+    count = size > sizeof(WIDE_CHAR) ? size - sizeof(WIDE_CHAR) : 0;
+    count = count > count % sizeof(WIDE_CHAR) ? count - count % sizeof(WIDE_CHAR) : 0;
   } else if (this->_type == Chunk::Type::Char) {
     count = size > sizeof(char) ? size - sizeof(char) : 0;
   }
@@ -101,7 +101,7 @@ size_t Chunk::copyString(uint8_t* dest, size_t size) {
 
   if (count > 0) {
     if (this->_type == Chunk::Type::WideChar) {
-      memset(&dest[count], NULL, sizeof(wchar_t));
+      memset(&dest[count], NULL, sizeof(WIDE_CHAR));
     } else if (this->_type == Chunk::Type::Char) {
       memset(&dest[count], NULL, sizeof(char));
     }
@@ -120,7 +120,7 @@ ChunkedBuffer::ChunkedBuffer(Chunk::Type type) {
   this->_type = type;
 
   if (type == Chunk::Type::WideChar) {
-    this->_maxSize = this->_maxSize - this->_maxSize % sizeof(wchar_t);
+    this->_maxSize = this->_maxSize - this->_maxSize % sizeof(WIDE_CHAR);
   }
 };
 
@@ -129,8 +129,8 @@ ChunkedBuffer::ChunkedBuffer(size_t maxSize, Chunk::Type type) {
   this->_type = type;
 
   if (type == Chunk::Type::WideChar) {
-    this->_maxSize = this->_maxSize > 0 && this->_maxSize < sizeof(wchar_t) ? sizeof(wchar_t) : this->_maxSize;
-    this->_maxSize = this->_maxSize > this->_maxSize % sizeof(wchar_t) ? this->_maxSize - this->_maxSize % sizeof(wchar_t) : 0;
+    this->_maxSize = this->_maxSize > 0 && this->_maxSize < sizeof(WIDE_CHAR) ? sizeof(WIDE_CHAR) : this->_maxSize;
+    this->_maxSize = this->_maxSize > this->_maxSize % sizeof(WIDE_CHAR) ? this->_maxSize - this->_maxSize % sizeof(WIDE_CHAR) : 0;
   }
 };
 
@@ -241,15 +241,15 @@ size_t ChunkedBuffer::toStringBuffer(char** out) {
   return currentSize;
 }
 
-size_t ChunkedBuffer::toWideStringBuffer(wchar_t** out) {
+size_t ChunkedBuffer::toWideStringBuffer(WIDE_CHAR** out) {
   size_t expectedSize = this->bufferSize();
   if (expectedSize == 0) {
     *out = NULL;
     return 0;
   }
 
-  expectedSize = expectedSize - expectedSize % sizeof(wchar_t);
-  if (expectedSize < SIZE_MAX - sizeof(wchar_t)) { expectedSize += sizeof(wchar_t); }
+  expectedSize = expectedSize - expectedSize % sizeof(WIDE_CHAR);
+  if (expectedSize < SIZE_MAX - sizeof(WIDE_CHAR)) { expectedSize += sizeof(WIDE_CHAR); }
 
   uint8_t* buffer = (uint8_t*) malloc(expectedSize);
   if (buffer == NULL) {
@@ -262,17 +262,22 @@ size_t ChunkedBuffer::toWideStringBuffer(wchar_t** out) {
   uint8_t* ptr = buffer;
 
   for (std::list<Chunk*>::iterator it = this->_chunks.begin(); it != this->_chunks.end(); it++) {
-    size = wcsnlen((const wchar_t*) (*it)->buffer(), (*it)->bufferSize() / sizeof(wchar_t)) * sizeof(wchar_t);
+    for (size = 0; size < (*it)->bufferSize(); size += sizeof(WIDE_CHAR)) {
+      if ((*it)->buffer()[size] == NULL && (*it)->buffer()[size+1] == NULL) {
+        break;
+      }
+    }
+
     currentSize += (*it)->copy(ptr, size);
     ptr += size;
   }
 
   if (currentSize < expectedSize) {
-    memset(&buffer[currentSize], NULL, sizeof(wchar_t));
+    memset(&buffer[currentSize], NULL, sizeof(WIDE_CHAR));
   } else {
-    memset(&buffer[expectedSize-sizeof(wchar_t)], NULL, sizeof(wchar_t));
+    memset(&buffer[expectedSize-sizeof(WIDE_CHAR)], NULL, sizeof(WIDE_CHAR));
   }
 
-  *out = (wchar_t*) buffer;
+  *out = (WIDE_CHAR*) buffer;
   return currentSize;
 }
