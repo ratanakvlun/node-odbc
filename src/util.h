@@ -17,6 +17,9 @@
 #ifndef _SRC_UTIL_H
 #define _SRC_UTIL_H
 
-#define ALIGN_SIZE(v) (v > v % sizeof(SQLWCHAR) ? v - v % sizeof(SQLWCHAR) : 0)
+#define ALIGN_SIZE(v) ((v) > (v) % sizeof(SQLWCHAR) ? (v) - (v) % sizeof(SQLWCHAR) : 0)
+
+#define CLAMP_SIZE_UNSIGNED(v, max) ((ssize_t)(v) < 0 ? (size_t)(max) : (size_t)(v))
+#define CLAMP_SIZE_SIGNED(v) ((ssize_t)(v) < 0 ? -1 : (ssize_t)(v))
 
 #endif

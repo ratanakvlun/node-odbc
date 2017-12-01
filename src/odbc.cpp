@@ -465,16 +465,15 @@ void FreeBufferCallback(char* data, void* hint) {
 
 Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
                                    uint8_t* buffer, int bufferLength,
-                                   int32_t maxValueSize, int32_t valueChunkSize) {
+                                   size_t maxValueSize, size_t valueChunkSize) {
   Nan::EscapableHandleScope scope;
 
   const char* errHint = "[node-odbc] Error in ODBC::GetColumnValue";
   Local<Value> objError;
   bool hasError = false;
 
-  if (maxValueSize < 0 || maxValueSize > MAX_VALUE_SIZE) { maxValueSize = MAX_VALUE_SIZE; }
-  if (valueChunkSize < 0) { valueChunkSize = 1; }
-  else if (valueChunkSize > MAX_VALUE_CHUNK_SIZE) { valueChunkSize = MAX_VALUE_CHUNK_SIZE; }
+  if (valueChunkSize > MAX_VALUE_CHUNK_SIZE) { valueChunkSize = MAX_VALUE_CHUNK_SIZE; }
+  if (valueChunkSize > maxValueSize) { valueChunkSize = maxValueSize; }
 
   int ret;
   SQLLEN len;
@@ -742,7 +741,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
 Local<Value> ODBC::GetRecordTuple (SQLHSTMT hStmt,
                                    Column* columns, short* colCount,
                                    uint8_t* buffer, int bufferLength,
-                                   int32_t maxValueSize, int32_t valueChunkSize) {
+                                   size_t maxValueSize, size_t valueChunkSize) {
   Nan::EscapableHandleScope scope;
   
   Local<Object> tuple = Nan::New<Object>();
@@ -767,7 +766,7 @@ Local<Value> ODBC::GetRecordTuple (SQLHSTMT hStmt,
 Local<Value> ODBC::GetRecordArray (SQLHSTMT hStmt,
                                    Column* columns, short* colCount,
                                    uint8_t* buffer, int bufferLength,
-                                   int32_t maxValueSize, int32_t valueChunkSize) {
+                                   size_t maxValueSize, size_t valueChunkSize) {
   Nan::EscapableHandleScope scope;
   
   Local<Array> array = Nan::New<Array>();
@@ -1053,8 +1052,8 @@ Local<Array> ODBC::GetAllRecordsSync (HENV hENV,
                                       HSTMT hSTMT,
                                       uint8_t* buffer,
                                       int bufferLength,
-                                      int32_t maxValueSize,
-                                      int32_t valueChunkSize) {
+                                      size_t maxValueSize,
+                                      size_t valueChunkSize) {
   DEBUG_PRINTF("ODBC::GetAllRecordsSync\n");
   
   Nan::EscapableHandleScope scope;

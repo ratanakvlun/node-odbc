@@ -40,7 +40,7 @@ using namespace node;
 #define MAX_FIELD_SIZE 1024
 #define FIXED_BUFFER_SIZE 1048576
 
-#define MAX_VALUE_SIZE INT32_MAX
+#define MAX_VALUE_SIZE SIZE_MAX
 #define MAX_VALUE_SIZE_DEFAULT MAX_VALUE_SIZE
 #define MAX_VALUE_CHUNK_SIZE (int)Nan::imp::kMaxLength
 #define MAX_VALUE_CHUNK_SIZE_DEFAULT 16777216
@@ -91,15 +91,15 @@ class ODBC : public Nan::ObjectWrap {
     static Column* GetColumns(SQLHSTMT hStmt, short* colCount);
     static void FreeColumns(Column* columns, short* colCount);
     static Local<Array> GetColumnMetadata(Column* columns, short* colCount);
-    static Handle<Value> GetColumnValue(SQLHSTMT hStmt, Column column, uint8_t* buffer, int bufferLength, int32_t maxValueSize, int32_t valueChunkSize);
-    static Local<Value> GetRecordTuple (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength, int32_t maxValueSize, int32_t valueChunkSize);
-    static Local<Value> GetRecordArray (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength, int32_t maxValueSize, int32_t valueChunkSize);
+    static Handle<Value> GetColumnValue(SQLHSTMT hStmt, Column column, uint8_t* buffer, int bufferLength, size_t maxValueSize, size_t valueChunkSize);
+    static Local<Value> GetRecordTuple (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength, size_t maxValueSize, size_t valueChunkSize);
+    static Local<Value> GetRecordArray (SQLHSTMT hStmt, Column* columns, short* colCount, uint8_t* buffer, int bufferLength, size_t maxValueSize, size_t valueChunkSize);
     static Handle<Value> CallbackSQLError(SQLSMALLINT handleType, SQLHANDLE handle, Nan::Callback* cb);
     static Local<Value> CallbackSQLError (SQLSMALLINT handleType, SQLHANDLE handle, char* message, Nan::Callback* cb);
     static Local<Object> GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle);
     static Local<Object> GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, const char* message);
     static Local<Object> GetError (const char* message, const char* code = NULL, const char* hint = NULL);
-    static Local<Array>  GetAllRecordsSync (HENV hENV, HDBC hDBC, HSTMT hSTMT, uint8_t* buffer, int bufferLength, int32_t maxValueSize, int32_t valueChunkSize);
+    static Local<Array>  GetAllRecordsSync (HENV hENV, HDBC hDBC, HSTMT hSTMT, uint8_t* buffer, int bufferLength, size_t maxValueSize, size_t valueChunkSize);
 #ifdef dynodbc
     static NAN_METHOD(LoadODBCLibrary);
 #endif

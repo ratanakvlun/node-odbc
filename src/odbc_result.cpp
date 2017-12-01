@@ -1,6 +1,6 @@
 /*
   Copyright (c) 2017, Ratanak Lun <ratanakvlun@gmail.com>
-  Copyright (c) 2013, Dan VerWeire<dverweire@gmail.com>
+  Copyright (c) 2013, Dan VerWeire <dverweire@gmail.com>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -148,8 +148,8 @@ NAN_METHOD(ODBCResult::New) {
   //set option defaults
   objODBCResult->m_fetchMode = FETCH_OBJECT;
   objODBCResult->m_includeMetadata = false;
-  objODBCResult->m_maxValueSize = MAX_VALUE_SIZE_DEFAULT;
-  objODBCResult->m_valueChunkSize = MAX_VALUE_CHUNK_SIZE_DEFAULT;
+  objODBCResult->m_maxValueSize = CLAMP_SIZE_UNSIGNED(MAX_VALUE_SIZE_DEFAULT, MAX_VALUE_SIZE);
+  objODBCResult->m_valueChunkSize = CLAMP_SIZE_UNSIGNED(MAX_VALUE_CHUNK_SIZE_DEFAULT, MAX_VALUE_CHUNK_SIZE);
 
   objODBCResult->Wrap(info.Holder());
   
@@ -191,28 +191,28 @@ NAN_SETTER(ODBCResult::IncludeMetadataSetter) {
 NAN_GETTER(ODBCResult::MaxValueSizeGetter) {
   ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
 
-  info.GetReturnValue().Set(Nan::New(obj->m_maxValueSize));
+  info.GetReturnValue().Set(Nan::New<Number>((double)CLAMP_SIZE_SIGNED(obj->m_maxValueSize)));
 }
 
 NAN_SETTER(ODBCResult::MaxValueSizeSetter) {
   ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
 
-  if (value->IsInt32()) {
-    obj->m_maxValueSize = value->Int32Value();
+  if (value->IsNumber()) {
+    obj->m_maxValueSize = CLAMP_SIZE_UNSIGNED(value->NumberValue(), MAX_VALUE_SIZE);
   }
 }
 
 NAN_GETTER(ODBCResult::ValueChunkSizeGetter) {
   ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
 
-  info.GetReturnValue().Set(Nan::New(obj->m_valueChunkSize));
+  info.GetReturnValue().Set(Nan::New<Number>((double)CLAMP_SIZE_SIGNED(obj->m_valueChunkSize)));
 }
 
 NAN_SETTER(ODBCResult::ValueChunkSizeSetter) {
   ODBCResult *obj = Nan::ObjectWrap::Unwrap<ODBCResult>(info.Holder());
 
-  if (value->IsInt32()) {
-    obj->m_valueChunkSize = value->Int32Value();
+  if (value->IsNumber()) {
+    obj->m_valueChunkSize = CLAMP_SIZE_UNSIGNED(value->NumberValue(), MAX_VALUE_CHUNK_SIZE);
   }
 }
 
@@ -251,13 +251,13 @@ NAN_METHOD(ODBCResult::Fetch) {
     }
 
     Local<String> maxValueSizeKey = Nan::New<String>(OPTION_MAX_VALUE_SIZE);
-    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsInt32()) {
-      data->maxValueSize = obj->Get(maxValueSizeKey)->ToInt32()->Value();
+    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsNumber()) {
+      data->maxValueSize = CLAMP_SIZE_UNSIGNED(obj->Get(maxValueSizeKey)->NumberValue(), MAX_VALUE_SIZE);
     }
 
     Local<String> valueChunkSizeKey = Nan::New<String>(OPTION_VALUE_CHUNK_SIZE);
-    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsInt32()) {
-      data->valueChunkSize = obj->Get(valueChunkSizeKey)->ToInt32()->Value();
+    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsNumber()) {
+      data->valueChunkSize = CLAMP_SIZE_UNSIGNED(obj->Get(valueChunkSizeKey)->NumberValue(), MAX_VALUE_CHUNK_SIZE);
     }
   }
   else {
@@ -409,8 +409,8 @@ NAN_METHOD(ODBCResult::FetchSync) {
   bool error = false;
 
   int fetchMode = objResult->m_fetchMode;
-  int32_t maxValueSize = objResult->m_maxValueSize;
-  int32_t valueChunkSize = objResult->m_valueChunkSize;
+  size_t maxValueSize = objResult->m_maxValueSize;
+  size_t valueChunkSize = objResult->m_valueChunkSize;
 
   if (info.Length() == 1 && info[0]->IsObject()) {
     Local<Object> obj = info[0]->ToObject();
@@ -421,13 +421,13 @@ NAN_METHOD(ODBCResult::FetchSync) {
     }
 
     Local<String> maxValueSizeKey = Nan::New<String>(OPTION_MAX_VALUE_SIZE);
-    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsInt32()) {
-      maxValueSize = obj->Get(maxValueSizeKey)->ToInt32()->Value();
+    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsNumber()) {
+      maxValueSize = CLAMP_SIZE_UNSIGNED(obj->Get(maxValueSizeKey)->NumberValue(), MAX_VALUE_SIZE);
     }
 
     Local<String> valueChunkSizeKey = Nan::New<String>(OPTION_VALUE_CHUNK_SIZE);
-    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsInt32()) {
-      valueChunkSize = obj->Get(valueChunkSizeKey)->ToInt32()->Value();
+    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsNumber()) {
+      valueChunkSize = CLAMP_SIZE_UNSIGNED(obj->Get(valueChunkSizeKey)->NumberValue(), MAX_VALUE_CHUNK_SIZE);
     }
   }
   
@@ -539,13 +539,13 @@ NAN_METHOD(ODBCResult::FetchAll) {
     }
 
     Local<String> maxValueSizeKey = Nan::New<String>(OPTION_MAX_VALUE_SIZE);
-    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsInt32()) {
-      data->maxValueSize = obj->Get(maxValueSizeKey)->ToInt32()->Value();
+    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsNumber()) {
+      data->maxValueSize = CLAMP_SIZE_UNSIGNED(obj->Get(maxValueSizeKey)->NumberValue(), MAX_VALUE_SIZE);
     }
 
     Local<String> valueChunkSizeKey = Nan::New<String>(OPTION_VALUE_CHUNK_SIZE);
-    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsInt32()) {
-      data->valueChunkSize = obj->Get(valueChunkSizeKey)->ToInt32()->Value();
+    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsNumber()) {
+      data->valueChunkSize = CLAMP_SIZE_UNSIGNED(obj->Get(valueChunkSizeKey)->NumberValue(), MAX_VALUE_CHUNK_SIZE);
     }
   }
   else {
@@ -718,8 +718,8 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
 
   int fetchMode = self->m_fetchMode;
   bool includeMetadata = self->m_includeMetadata;
-  int32_t maxValueSize = self->m_maxValueSize;
-  int32_t valueChunkSize = self->m_valueChunkSize;
+  size_t maxValueSize = self->m_maxValueSize;
+  size_t valueChunkSize = self->m_valueChunkSize;
 
   if (info.Length() == 1 && info[0]->IsObject()) {
     Local<Object> obj = info[0]->ToObject();
@@ -735,13 +735,13 @@ NAN_METHOD(ODBCResult::FetchAllSync) {
     }
 
     Local<String> maxValueSizeKey = Nan::New<String>(OPTION_MAX_VALUE_SIZE);
-    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsInt32()) {
-      maxValueSize = obj->Get(maxValueSizeKey)->ToInt32()->Value();
+    if (obj->Has(maxValueSizeKey) && obj->Get(maxValueSizeKey)->IsNumber()) {
+      maxValueSize = CLAMP_SIZE_UNSIGNED(obj->Get(maxValueSizeKey)->NumberValue(), MAX_VALUE_SIZE);
     }
 
     Local<String> valueChunkSizeKey = Nan::New<String>(OPTION_VALUE_CHUNK_SIZE);
-    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsInt32()) {
-      valueChunkSize = obj->Get(valueChunkSizeKey)->ToInt32()->Value();
+    if (obj->Has(valueChunkSizeKey) && obj->Get(valueChunkSizeKey)->IsNumber()) {
+      valueChunkSize = CLAMP_SIZE_UNSIGNED(obj->Get(valueChunkSizeKey)->NumberValue(), MAX_VALUE_CHUNK_SIZE);
     }
   }
   

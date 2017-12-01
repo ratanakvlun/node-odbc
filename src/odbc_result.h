@@ -1,6 +1,6 @@
 /*
   Copyright (c) 2017, Ratanak Lun <ratanakvlun@gmail.com>
-  Copyright (c) 2013, Dan VerWeire<dverweire@gmail.com>
+  Copyright (c) 2013, Dan VerWeire <dverweire@gmail.com>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -87,8 +87,8 @@ protected:
       
       int fetchMode;
       bool includeMetadata;
-      int32_t maxValueSize;
-      int32_t valueChunkSize;
+      size_t maxValueSize;
+      size_t valueChunkSize;
 
       int count;
       int errorCount;
@@ -106,8 +106,8 @@ protected:
 
     int m_fetchMode;
     bool m_includeMetadata;
-    int32_t m_maxValueSize;
-    int32_t m_valueChunkSize;
+    size_t m_maxValueSize;
+    size_t m_valueChunkSize;
     
     uint8_t *buffer;
     int bufferLength;
