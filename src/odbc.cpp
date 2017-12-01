@@ -992,6 +992,7 @@ Local<Object> ODBC::GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, const
         objError->Set(Nan::New("message").ToLocalChecked(), Nan::New(errorMessage).ToLocalChecked());
         objError->Set(Nan::New("state").ToLocalChecked(), Nan::New(errorSQLState).ToLocalChecked());
 #endif
+        objError->Set(Nan::New("code").ToLocalChecked(), Nan::New(native));
       }
 
       Local<Object> subError = Nan::New<Object>();
@@ -1003,6 +1004,7 @@ Local<Object> ODBC::GetSQLError (SQLSMALLINT handleType, SQLHANDLE handle, const
       subError->Set(Nan::New("message").ToLocalChecked(), Nan::New(errorMessage).ToLocalChecked());
       subError->Set(Nan::New("state").ToLocalChecked(), Nan::New(errorSQLState).ToLocalChecked());
 #endif
+      subError->Set(Nan::New("code").ToLocalChecked(), Nan::New(native));
       errors->Set(Nan::New(i), subError);
 
     } else if (ret == SQL_NO_DATA) {
