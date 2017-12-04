@@ -671,12 +671,31 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
 
       return scope.Escape(buffers);
     }
-    case SQL_CHAR:
-    case SQL_VARCHAR:
-    case SQL_LONGVARCHAR:
     case SQL_WCHAR:
     case SQL_WVARCHAR:
     case SQL_WLONGVARCHAR:
+    {
+      ret = SQLGetData(
+        hStmt,
+        column.index,
+        SQL_C_WCHAR,
+        buffer,
+        bufferLength,
+        &len);
+
+      DEBUG_PRINTF("ODBC::GetColumnValue - Wide String: index=%u name=%s type=%zi len=%zi ret=%i\n",
+                   column.index, column.name, column.type, len, ret);
+
+      if (!SQL_SUCCEEDED(ret)) { break; }
+
+      if (len == SQL_NULL_DATA) {
+        return scope.Escape(Nan::Null());
+      }
+      return scope.Escape(Nan::New<String>((const uint16_t*)buffer).ToLocalChecked());
+    }
+    case SQL_CHAR:
+    case SQL_VARCHAR:
+    case SQL_LONGVARCHAR:
     case SQL_NUMERIC:
     case SQL_DECIMAL:
     case SQL_BIGINT:
