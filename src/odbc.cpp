@@ -799,6 +799,216 @@ Local<Value> ODBC::GetRecordArray (SQLHSTMT hStmt,
 }
 
 /*
+ * GetParametersFromObjectArray
+ */
+Parameter* ODBC::GetParametersFromObjectArray(Local<Array> objects, int* paramCount) {
+  DEBUG_PRINTF("ODBC::GetParametersFromObjectArray\n");
+
+  Local<String> typeKey = Nan::New<String>("type").ToLocalChecked();
+  Local<String> idKey = Nan::New<String>("id").ToLocalChecked();
+  Local<String> valueKey = Nan::New<String>("value").ToLocalChecked();
+  Local<String> optionsKey = Nan::New<String>("options").ToLocalChecked();
+  Local<String> lengthKey = Nan::New<String>("length").ToLocalChecked();
+  Local<String> precisionKey = Nan::New<String>("precision").ToLocalChecked();
+  Local<String> scaleKey = Nan::New<String>("scale").ToLocalChecked();
+
+  Parameter* params = NULL;
+
+  *paramCount = objects->Length();
+  if (*paramCount > 0) {
+    params = (Parameter*)malloc(*paramCount * sizeof(Parameter));
+  }
+
+  for (int i = 0; i < *paramCount; i++) {
+    Local<Object> obj = objects->Get(i)->ToObject();
+
+    params[i].ValueType = SQL_C_DEFAULT;
+    params[i].ParameterType = SQL_TYPE_NULL;
+    params[i].ColumnSize = 0;
+    params[i].DecimalDigits = 0;
+    params[i].ParameterValuePtr = NULL;
+    params[i].BufferLength = 0;
+    params[i].StrLen_or_IndPtr = SQL_NULL_DATA;
+
+    Local<Value> value = Nan::Undefined();
+    Local<Object> options;
+
+    if (obj->Has(typeKey) && obj->Get(typeKey)->IsObject()) {
+      Local<Object> typeObj = obj->Get(typeKey)->ToObject();
+      if (typeObj->Has(idKey) && typeObj->Get(idKey)->IsInt32()) {
+        params[i].ParameterType = typeObj->Get(idKey)->Int32Value();
+      }
+    }
+
+    if (obj->Has(valueKey)) {
+      value = obj->Get(valueKey);
+
+      if (value->IsInt32()) {
+        params[i].ValueType = SQL_C_LONG;
+      } else if (value->IsNumber()) {
+        params[i].ValueType = SQL_C_DOUBLE;
+      } else if (value->IsBoolean()) {
+        params[i].ValueType = SQL_C_BIT;
+      } else if (value->IsObject() && Buffer::HasInstance(value)) {
+        params[i].ValueType = SQL_C_BINARY;
+      } else if (value->IsString()) {
+        params[i].ValueType = SQL_C_WCHAR;
+      } else {
+        value = Nan::Undefined();
+      }
+    }
+
+    if (value->IsUndefined()) { continue; }
+
+    SQLULEN columnSize = 0;
+    SQLSMALLINT decimalDigits = 0;
+
+    switch (params[i].ValueType) {
+      case SQL_C_LONG:
+      {
+        int32_t* v = (int32_t*)malloc(sizeof(int32_t));
+        *v = value->Int32Value();
+
+        params[i].ParameterValuePtr = v;
+        params[i].BufferLength = sizeof(int32_t);
+        params[i].StrLen_or_IndPtr = NULL;
+        columnSize = 11;
+        break;
+      }
+      case SQL_C_DOUBLE:
+      {
+        double* v = (double*)malloc(sizeof(double));
+        *v = value->NumberValue();
+
+        params[i].ParameterValuePtr = v;
+        params[i].BufferLength = sizeof(double);
+        params[i].StrLen_or_IndPtr = NULL;
+        columnSize = 23;
+        break;
+      }
+      case SQL_C_BIT:
+      {
+        boolean* v = (boolean*)malloc(sizeof(boolean));
+        *v = value->BooleanValue();
+
+        params[i].ParameterValuePtr = v;
+        params[i].BufferLength = sizeof(boolean);
+        params[i].StrLen_or_IndPtr = NULL;
+        columnSize = 1;
+        break;
+      }
+      case SQL_C_BINARY:
+      {
+        params[i].ParameterValuePtr = Buffer::Data(value);
+        params[i].BufferLength = Buffer::Length(value);
+        params[i].StrLen_or_IndPtr = params[i].BufferLength;
+        columnSize = params[i].BufferLength;
+        break;
+      }
+      case SQL_C_WCHAR:
+      {
+        Local<String> v = value->ToString();
+
+        switch (params[i].ParameterType) {
+          case SQL_CHAR:
+          case SQL_VARCHAR:
+          case SQL_LONGVARCHAR:
+          case SQL_BINARY:
+          case SQL_VARBINARY:
+          case SQL_LONGVARBINARY:
+            params[i].ValueType = SQL_C_BINARY;
+            params[i].BufferLength = v->Utf8Length() + 1;
+            params[i].ParameterValuePtr = malloc(params[i].BufferLength);
+            v->WriteUtf8((char*)params[i].ParameterValuePtr);
+            params[i].StrLen_or_IndPtr = v->Utf8Length();
+            columnSize = v->Utf8Length();
+            break;
+          case SQL_WCHAR:
+          case SQL_WVARCHAR:
+          case SQL_WLONGVARCHAR:
+          default:
+            params[i].BufferLength = (v->Length() + 1) * sizeof(uint16_t);
+            params[i].ParameterValuePtr = malloc(params[i].BufferLength);
+            v->Write((uint16_t*)params[i].ParameterValuePtr);
+            params[i].StrLen_or_IndPtr = SQL_NTS;
+            columnSize = v->Length();
+            break;
+        }
+        break;
+      }
+    }
+
+    switch (params[i].ParameterType) {
+      case SQL_TIME:
+      case SQL_TIMESTAMP:
+      case SQL_TYPE_TIME:
+      case SQL_TYPE_TIMESTAMP:
+        decimalDigits = 7;
+        break;
+    }
+
+    if (obj->Has(optionsKey) && obj->Get(optionsKey)->IsObject()) {
+      options = obj->Get(optionsKey)->ToObject();
+    }
+
+    if (!options.IsEmpty()) {
+      if (options->Has(lengthKey) && options->Get(lengthKey)->IsUint32()) {
+        columnSize = options->Get(lengthKey)->Uint32Value();
+      } else if (options->Has(precisionKey) && options->Get(precisionKey)->IsUint32()) {
+        columnSize = options->Get(precisionKey)->Uint32Value();
+      }
+
+      if (options->Has(scaleKey) && options->Get(scaleKey)->IsInt32()) {
+        decimalDigits = options->Get(scaleKey)->Int32Value();
+      }
+    }
+
+    if (columnSize == 0) { columnSize = 1; }
+
+    switch (params[i].ParameterType) {
+      case SQL_CHAR:
+      case SQL_BINARY:
+        params[i].ColumnSize = columnSize <= LONG_DATA_THRESHOLD ? columnSize : LONG_DATA_THRESHOLD;
+        break;
+      case SQL_VARCHAR:
+      case SQL_LONGVARCHAR:
+      case SQL_VARBINARY:
+      case SQL_LONGVARBINARY:
+        params[i].ColumnSize = columnSize <= LONG_DATA_THRESHOLD ? columnSize : 0;
+        break;
+      case SQL_WCHAR:
+        params[i].ColumnSize = columnSize <= LONG_DATA_THRESHOLD / sizeof(uint16_t) ? columnSize : LONG_DATA_THRESHOLD / sizeof(uint16_t);
+        break;
+      case SQL_WVARCHAR:
+      case SQL_WLONGVARCHAR:
+        params[i].ColumnSize = columnSize <= LONG_DATA_THRESHOLD / sizeof(uint16_t) ? columnSize : 0;
+        break;
+      case SQL_TIMESTAMP:
+      case SQL_TYPE_TIMESTAMP:
+        params[i].ColumnSize = 27;
+      case SQL_TIME:
+      case SQL_TYPE_TIME:
+        params[i].DecimalDigits = decimalDigits;
+        break;
+      case SQL_GUID:
+        params[i].ColumnSize = 36;
+        break;
+      case SQL_NUMERIC:
+      case SQL_DECIMAL:
+      default:
+        params[i].ColumnSize = columnSize;
+        params[i].DecimalDigits = decimalDigits;
+        break;
+    }
+
+    DEBUG_PRINTF("ODBC::GetParametersFromObjectArray - parameter=%i valueType=%i parameterType=%i columnSize=%u decimalDigits=%i parameterValuePtr=0x%x bufferLength=%i lengthPtr=0x%x\n",
+                 i, params[i].ValueType, params[i].ParameterType, params[i].ColumnSize, params[i].DecimalDigits, (size_t)params[i].ParameterValuePtr, params[i].BufferLength, params[i].StrLen_or_IndPtr);
+  }
+
+  return params;
+}
+
+/*
  * GetParametersFromArray
  */
 

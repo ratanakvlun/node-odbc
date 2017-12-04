@@ -697,12 +697,19 @@ NAN_METHOD(ODBCConnection::Query) {
     }
 
     sql = info[0]->ToString();
-    
-    data->params = ODBC::GetParametersFromArray(
-      Local<Array>::Cast(info[1]),
-      &data->paramCount);
-    
+    Local<Array> arr = Local<Array>::Cast(info[1]);
     cb = Local<Function>::Cast(info[2]);
+
+    size_t i;
+    for (i = 0; i < arr->Length(); i++) {
+      if (!arr->Get(i)->IsObject()) { break; }
+    }
+
+    if (i < arr->Length()) {
+      data->params = ODBC::GetParametersFromArray(arr, &data->paramCount);
+    } else {
+      data->params = ODBC::GetParametersFromObjectArray(arr, &data->paramCount);
+    }
   }
   else if (info.Length() == 2 ) {
     //handle either Query("sql", cb) or Query({ settings }, cb)
@@ -738,9 +745,18 @@ NAN_METHOD(ODBCConnection::Query) {
       
       Local<String> optionParamsKey = Nan::New(OPTION_PARAMS);
       if (obj->Has(optionParamsKey) && obj->Get(optionParamsKey)->IsArray()) {
-        data->params = ODBC::GetParametersFromArray(
-          Local<Array>::Cast(obj->Get(optionParamsKey)),
-          &data->paramCount);
+        Local<Array> arr = Local<Array>::Cast(obj->Get(optionParamsKey));
+
+        size_t i;
+        for (i = 0; i < arr->Length(); i++) {
+          if (!arr->Get(i)->IsObject()) { break; }
+        }
+
+        if (i < arr->Length()) {
+          data->params = ODBC::GetParametersFromArray(arr, &data->paramCount);
+        } else {
+          data->params = ODBC::GetParametersFromObjectArray(arr, &data->paramCount);
+        }
       }
       else {
         data->paramCount = 0;
