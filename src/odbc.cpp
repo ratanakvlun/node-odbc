@@ -541,8 +541,8 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         sizeof(value),
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Integer: index=%i name=%s type=%zi len=%zi ret=%i val=%i\n",
-                   column.index, column.name, column.type, len, ret, value);
+      DEBUG_PRINTF("ODBC::GetColumnValue - Integer: index=%u name=%s type=%zi len=%zi ret=%i\n",
+                   column.index, column.name, column.type, len, ret);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
 
@@ -565,8 +565,8 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         sizeof(value),
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Number: index=%i name=%s type=%zi len=%zi ret=%i val=%f\n",
-                   column.index, column.name, column.type, len, ret, value);
+      DEBUG_PRINTF("ODBC::GetColumnValue - Number: index=%u name=%s type=%zi len=%zi ret=%i\n",
+                   column.index, column.name, column.type, len, ret);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
 
@@ -585,8 +585,8 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         bufferLength,
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - Bit: index=%i name=%s type=%zi len=%zi ret=%i val=%s\n",
-                   column.index, column.name, column.type, len, ret, buffer);
+      DEBUG_PRINTF("ODBC::GetColumnValue - Bit: index=%u name=%s type=%zi len=%zi ret=%i\n",
+                   column.index, column.name, column.type, len, ret);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
 
@@ -620,7 +620,7 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
           chunk->bufferSize(),
           &len);
 
-        DEBUG_PRINTF("ODBC::GetColumnValue - Long Data: index=%i name=%s type=%zi len=%zi ret=%i\n",
+        DEBUG_PRINTF("ODBC::GetColumnValue - Long Data: index=%u name=%s type=%zi len=%zi ret=%i\n",
                      column.index, column.name, column.type, len, ret);
 
         if (!SQL_SUCCEEDED(ret)) { break; }
@@ -716,15 +716,15 @@ Handle<Value> ODBC::GetColumnValue(SQLHSTMT hStmt, Column column,
         bufferLength,
         &len);
 
-      DEBUG_PRINTF("ODBC::GetColumnValue - String: index=%i name=%s type=%zi len=%zi ret=%i val=%s\n",
-                   column.index, column.name, column.type, len, ret, buffer);
+      DEBUG_PRINTF("ODBC::GetColumnValue - String: index=%u name=%s type=%zi len=%zi ret=%i\n",
+                   column.index, column.name, column.type, len, ret);
 
       if (!SQL_SUCCEEDED(ret)) { break; }
 
       if (len == SQL_NULL_DATA) {
         return scope.Escape(Nan::Null());
       }
-      return scope.Escape(Nan::New<String>((const char *) buffer).ToLocalChecked());
+      return scope.Escape(Nan::New<String>((const char*)buffer).ToLocalChecked());
     }
   }
 
