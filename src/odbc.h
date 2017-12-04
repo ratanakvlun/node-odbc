@@ -104,6 +104,7 @@ class ODBC : public Nan::ObjectWrap {
     static NAN_METHOD(LoadODBCLibrary);
 #endif
     static Parameter* GetParametersFromArray (Local<Array> values, int* paramCount);
+    static Parameter* GetParametersFromObjectArray(Local<Array> objects, int* paramCount);
     
     void Free();
     
