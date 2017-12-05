@@ -1,8 +1,8 @@
 {
-  'targets' : [
+  'targets': [
     {
-      'target_name' : 'odbc_bindings',
-      'sources' : [ 
+      'target_name': '<(module_name)',
+      'sources': [
         'src/odbc.cpp',
         'src/odbc_connection.cpp',
         'src/odbc_statement.cpp',
@@ -10,41 +10,46 @@
         'src/dynodbc.cpp',
         'src/chunked_buffer.cpp'
       ],
-      'cflags' : ['-Wall', '-Wextra', '-Wno-unused-parameter'],
+      'cflags': ['-Wall', '-Wextra', '-Wno-unused-parameter'],
       'include_dirs': [
-        "<!(node -e \"require('nan')\")"
+        '<!(node -e "require(\'nan\')")'
       ],
-      'defines' : [
+      'defines': [
         'UNICODE'
       ],
-      'conditions' : [
-        [ 'OS == "linux"', {
-          'libraries' : [ 
-            '-lodbc' 
+      'conditions': [
+        ['OS == "linux"', {
+          'libraries': [
+            '-lodbc'
           ],
-          'cflags' : [
+          'cflags': [
             '-g'
           ]
         }],
-        [ 'OS == "mac"', {
+        ['OS == "mac"', {
           'include_dirs': [
             '/usr/local/include'
           ],
-          'libraries' : [
+          'libraries': [
             '-L/usr/local/lib',
-            '-lodbc' 
+            '-lodbc'
           ]
         }],
-        [ 'OS=="win"', {
-          'sources' : [
-            'src/strptime.c',
-            'src/odbc.cpp'
-          ],
-          'libraries' : [ 
-            '-lodbccp32.lib' 
+        ['OS == "win"', {
+          'libraries': [
+            '-lodbccp32.lib'
           ]
         }]
       ]
+    },
+    {
+      'target_name': '<(module_name)_post_build',
+      'type': 'none',
+      'dependencies': ['<(module_name)'],
+      'copies': [{
+        'files': ['<(PRODUCT_DIR)/<(module_name).node'],
+        'destination': '<(module_path)'
+      }]
     }
   ]
 }
