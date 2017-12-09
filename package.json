@@ -58,7 +58,7 @@
     "install-deps": "npm update --no-save",
     "build": "npm run install-deps && node ./scripts/build.js",
     "build-all": "npm run build -- --target=all --target_arch=all",
-    "test": "cd test && node run-tests.js",
+    "test": "echo No test specified",
     "version": "node ./scripts/version.js"
   }
 }
