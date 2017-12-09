@@ -50,8 +50,10 @@
   },
   "scripts": {
     "install": "node-pre-gyp install --fallback-to-build",
-    "build": "python ./scripts/build.py",
+    "install-deps": "npm update --no-save",
+    "build": "npm run install-deps && node ./scripts/build.js",
     "build-all": "npm run build -- --target=all --target_arch=all",
-    "test": "cd test && node run-tests.js"
+    "test": "cd test && node run-tests.js",
+    "version": "node ./scripts/version.js"
   }
 }
