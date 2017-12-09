@@ -58,7 +58,8 @@
     "install-deps": "npm update --no-save",
     "build": "npm run install-deps && node ./scripts/build.js",
     "build-all": "npm run build -- --target=all --target_arch=all",
-    "test": "echo No test specified",
-    "version": "node ./scripts/version.js"
+    "version": "node ./scripts/version.js",
+    "lint": "eslint lib scripts",
+    "test": "echo No test specified"
   }
 }
