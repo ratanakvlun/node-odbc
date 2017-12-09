@@ -1,0 +1,169 @@
+#
+# ISC License
+#
+# Copyright (c) 2017, Ratanak Lun <ratanakvlun@gmail.com>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+
+image: Visual Studio 2015
+
+environment:
+  npm_tries: 3
+  retry_delay: 3
+  nodejs_version: 4
+
+platform:
+- x86
+
+configuration:
+- Release
+
+matrix:
+  fast_finish: true
+
+services:
+- mssql2008r2sp2
+
+init:
+- ps: |
+    Function Write-Success ($message) {
+      Add-AppveyorMessage $message
+      Write-Host $message -ForegroundColor Green
+    }
+
+    Function Write-Warn ($message) {
+      Add-AppveyorMessage $message
+      Write-Host $message -ForegroundColor Yellow
+    }
+
+    Function Throw-Error ($message) {
+      Add-AppveyorMessage $message -Category Error
+      throw $message
+    }
+
+    Function Install-Dependencies {
+      For ($i = 0; $i -lt $env:npm_tries; $i++) {
+        Try {
+          npm run install-deps
+          If ($lastexitcode -eq 0) { Break }
+          Start-Sleep $retry_delay
+        } Catch {
+          Write-Error $PsItem
+        }
+        If ($lastexitcode -ne 0) {
+          Throw-Error "Error: Unable to install project dependencies."
+        }
+      }
+    }
+
+    $architectures = ("x86", "x64")
+    $nodejs_versions = (4, 5, 6, 7, 8, 9)
+
+    Update-AppveyorBuild -Version (Get-Date).ToUniversalTime().ToString("yyyyMMdd-HHmmssfffZ")
+
+install:
+- ps: |
+    $env:appveyor_repo_branch_head = git show origin/$env:appveyor_repo_branch --format="%H" --no-patch
+    $env:project_version = ((Get-Content .\package.json) | ConvertFrom-Json).version
+
+    If ($env:appveyor_repo_commit -eq $env:appveyor_repo_branch_head) {
+      $env:appveyor_job_context = "branch"
+    } Else {
+      $env:appveyor_job_context = "pr"
+    }
+
+    If ($env:appveyor_job_context -eq "pr") {
+      $required_sources = @{
+        master = "develop"
+      }
+      If ($env:appveyor_repo_branch -in $required_sources.Keys) {
+        If ($env:appveyor_pull_request_head_repo_branch -ne $required_sources[$env:appveyor_repo_branch]) {
+          Throw-Error "Error: Pull requests for '$env:appveyor_repo_branch' are only allowed from '$env:appveyor_repo_name/$($required_sources[$env:appveyor_repo_branch])'."
+        }
+      }
+    }
+
+skip_tags: true
+
+for:
+- branches:
+    only:
+    - develop
+
+  build_script:
+  - ps: |
+      ForEach ($arch in $architectures) {
+        Install-Product node $env:nodejs_version $arch
+
+        Remove-Item -Recurse -Force node_modules
+        Install-Dependencies
+
+        npm run build -- -j $env:number_of_processors
+        npm run test
+      }
+
+- branches:
+    only:
+    - master
+
+  environment:
+    npm_auth_token:
+      secure: QmctZLF9qJKBJTmILpUhR3T80KZWxlglooL96KJp19eVUoILyzVCxMZBq1vTRJno
+
+  before_build:
+  - ps: |
+      If ($env:appveyor_job_context -eq "branch") {
+        If ((git tag -l v$env:project_version) -eq "v$env:project_version") {
+          Throw-Error "Error: Deployment aborted because release v$env:project_version already exists."
+        }
+      }
+
+  build_script:
+  - ps: |
+      ForEach ($ver in $nodejs_versions) {
+        ForEach ($arch in $architectures) {
+          Install-Product node $ver $arch
+
+          Remove-Item -Recurse -Force node_modules
+          Install-Dependencies
+
+          npm run build -- package -j $env:number_of_processors
+          npm run test
+        }
+      }
+
+  after_build:
+  - ps: |
+      If ($env:appveyor_job_context -ne "branch") {
+        Write-Warn "Deployment skipped because task context is pull request."
+        Exit-AppveyorBuild
+      } Else {
+        $result = Get-ChildItem build\stage | Measure-Object
+        If ($result.Count -eq 0) {
+          Throw-Error "Error: Deployment aborted because artifacts could not be found."
+        }
+      }
+
+  before_deploy:
+  - ps: |
+      "//registry.npmjs.org/:_authToken=$env:npm_auth_token" | Out-File "$env:userprofile\.npmrc" -Encoding ASCII
+      npm publish
+
+  artifacts:
+  - path: build\stage\*
+    name: Artifacts
+
+  deploy:
+  - provider: Environment
+    name: Release
