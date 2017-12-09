@@ -1,0 +1,9 @@
+.npmignore
+.vs
+.vscode
+.eslintrc
+appveyor.yml
+build
+test
+examples
+benchmark
