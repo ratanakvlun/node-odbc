@@ -119,7 +119,7 @@ for:
 
   environment:
     npm_auth_token:
-      secure: QmctZLF9qJKBJTmILpUhR3T80KZWxlglooL96KJp19eVUoILyzVCxMZBq1vTRJno
+      secure: 1Jasjw8zE9EVWGeX/AffhnLDt24RJeLgSWz0KWWpZSe3tn0P8h7DmpRjiAGU3m1Z
 
   before_build:
   - ps: |
