@@ -56,7 +56,7 @@
     "build": "npm run install-deps && node ./scripts/build.js",
     "build-all": "npm run build -- --target=all --target_arch=all",
     "version": "node ./scripts/version.js",
-    "lint": "eslint lib scripts",
+    "lint": "eslint ./lib ./scripts",
     "test": "echo No test specified"
   }
 }
