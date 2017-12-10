@@ -1,6 +1,6 @@
 {
   "name": "@ratanakvlun/node-odbc",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "ODBC Bindings for Node.js",
   "license": "ISC",
   "keywords": [
@@ -51,7 +51,7 @@
   "binary": {
     "module_name": "bindings",
     "module_path": "./lib/bin/{node_abi}/{platform}/{arch}",
-    "host": "https://github.com/ratanakvlun/node-odbc/releases/download/v2.0.0"
+    "host": "https://github.com/ratanakvlun/node-odbc/releases/download/v2.0.1"
   },
   "scripts": {
     "install": "node-pre-gyp install --fallback-to-build",
