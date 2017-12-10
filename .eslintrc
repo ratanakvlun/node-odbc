@@ -8,18 +8,26 @@
     "no-console": "warn",
     "no-unused-vars": [
       "error",
-      { "args": "none" }
+      {
+        "args": "none"
+      }
     ],
     "no-trailing-spaces": "error",
     "space-unary-ops": [
       "error",
-      { "words": true }
+      {
+        "words": true
+      }
     ],
     "keyword-spacing": "error",
     "indent": [
       "error",
       2,
-      { "ignoredNodes": [ "VariableDeclarator" ] }
+      {
+        "ignoredNodes": [
+          "VariableDeclarator"
+        ]
+      }
     ],
     "quotes": [
       "error",
@@ -33,6 +41,22 @@
     "eqeqeq": "error",
     "semi-style": "error",
     "no-extra-semi": "error",
-    "space-infix-ops": "error"
+    "space-infix-ops": "error",
+    "no-multi-spaces": "error",
+    "no-mixed-spaces-and-tabs": [
+      "error",
+      "smart-tabs"
+    ],
+    "comma-dangle": "error",
+    "valid-jsdoc": [
+      "error",
+      {
+        "requireReturn": false
+      }
+    ],
+    "template-curly-spacing": [
+      "error",
+      "always"
+    ]
   }
 }
