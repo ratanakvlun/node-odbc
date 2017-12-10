@@ -1,7 +1,7 @@
 {
   "name": "@ratanakvlun/node-odbc",
   "version": "2.0.3",
-  "description": "ODBC Bindings for Node.js",
+  "description": "ODBC bindings for Node.js",
   "license": "ISC",
   "keywords": [
     "odbc",
