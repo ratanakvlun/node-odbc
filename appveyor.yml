@@ -158,7 +158,7 @@ for:
   before_deploy:
   - ps: |
       "//registry.npmjs.org/:_authToken=$env:npm_auth_token" | Out-File "$env:userprofile\.npmrc" -Encoding ASCII
-      npm publish
+      npm publish --access public
 
   artifacts:
   - path: build\stage\*
