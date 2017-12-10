@@ -1,3 +1,11 @@
+@ratanakvlun/node-odbc
+----------------------
+
+This module is based off of [`node-odbc`](https://github.com/wankdanker/node-odbc). It
+is an enhanced version that mainly targets a Windows and SQL Server configuration.
+
+Uses [Semantic Versioning](https://semver.org).
+
 node-odbc
 ---------
 
