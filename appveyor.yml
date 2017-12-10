@@ -155,11 +155,11 @@ for:
         }
       }
 
-  before_deploy:
-  - ps: |
       $filename = npm pack
       Move-Item "$filename" "build\stage\$($filename.Replace('.tgz', '-win32.tgz'))"
 
+  before_deploy:
+  - ps: |
       "//registry.npmjs.org/:_authToken=$env:npm_auth_token" | Out-File "$env:userprofile\.npmrc" -Encoding UTF8
       "lib\bin" | Out-File -Append .npmignore -Encoding UTF8
       npm publish --access public
