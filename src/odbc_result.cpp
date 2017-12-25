@@ -333,6 +333,8 @@ void ODBCResult::UV_AfterFetch(uv_work_t* work_req, int status) {
   if (moreWork) {
     Local<Value> info[2];
 
+    Nan::TryCatch try_catch;
+
     info[0] = Nan::Null();
     if (data->fetchMode == FETCH_ARRAY) {
       info[1] = ODBC::GetRecordArray(
@@ -355,14 +357,17 @@ void ODBCResult::UV_AfterFetch(uv_work_t* work_req, int status) {
         data->valueChunkSize);
     }
 
-    Nan::TryCatch try_catch;
-
-    data->cb->Call(2, info);
-    delete data->cb;
-
     if (try_catch.HasCaught()) {
-        Nan::FatalException(try_catch);
+      info[0] = try_catch.Exception();
+      try_catch.Reset();
     }
+
+     data->cb->Call(2, info);
+     delete data->cb;
+
+     if (try_catch.HasCaught()) {
+         Nan::FatalException(try_catch);
+     }
   }
   else {
     ODBC::FreeColumns(data->objResult->columns, &data->objResult->colCount);
